@@ -5,3 +5,6 @@ edition = "2021"
 
 [dependencies]
 midir = "0.10.1"
+
+[lib]
+crate-type = ["staticlib"]
