@@ -1,4 +1,5 @@
 namespace Prismriver
 
 @[extern "prismriver_ping"]
-opaque ping : UInt32 → UInt32
+opaque ping : UInt8 → IO Unit
+

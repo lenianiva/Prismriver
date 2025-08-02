@@ -8,3 +8,6 @@ midir = "0.10.1"
 
 [lib]
 crate-type = ["staticlib"]
+
+[build-dependencies]
+bindgen = "0.72.0"
