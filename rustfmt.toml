@@ -1,0 +1,11 @@
+edition = "2021"
+hard_tabs = true
+tab_spaces = 3
+brace_style = "AlwaysNextLine"
+
+unstable_features = true
+imports_granularity = "Crate"
+format_code_in_doc_comments = true
+
+# This leads to excessive spaces
+#reorder_impl_items = true

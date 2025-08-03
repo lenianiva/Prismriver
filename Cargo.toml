@@ -1,0 +1,13 @@
+[package]
+name = "prismriver"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+midir = "0.10.1"
+
+[lib]
+crate-type = ["cdylib"]
+
+[build-dependencies]
+bindgen = "0.72.0"
