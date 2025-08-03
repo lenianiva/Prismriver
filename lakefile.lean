@@ -9,10 +9,10 @@ extern_lib libprismriver pkg := do
     cmd := "cargo", args := #["build", "--release", "--lib"],
     cwd := pkg.dir, env := #[("LEAN_ROOT", .some leanRoot)],
   }
-  let name := nameToStaticLib "prismriver"
+  let name := nameToSharedLib "prismriver"
   let srcPath := pkg.dir / "target" / "release" / name
-  IO.FS.createDirAll pkg.staticLibDir
-  let dstPath := pkg.staticLibDir / name
+  IO.FS.createDirAll pkg.sharedLibDir
+  let dstPath := pkg.sharedLibDir / name
   IO.FS.writeBinFile dstPath (← IO.FS.readBinFile srcPath)
   return (pure dstPath)
 

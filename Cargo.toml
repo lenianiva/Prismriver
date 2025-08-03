@@ -7,7 +7,7 @@ edition = "2021"
 midir = "0.10.1"
 
 [lib]
-crate-type = ["staticlib"]
+crate-type = ["cdylib"]
 
 [build-dependencies]
 bindgen = "0.72.0"
