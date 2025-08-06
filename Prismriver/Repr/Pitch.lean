@@ -28,5 +28,11 @@ instance : Scale Pitch where
   notes octave := Fin.foldl (n := 12) (init := []) λ acc offset =>
     { octave, offset } :: acc
 
-end ET12
+theorem about_twelve_et (octave : Int) :
+  (Scale.notes octave : List Pitch).length = 12 := by
+  unfold Scale.notes
+  simp only [instScalePitch]
+  simp [Fin.foldl]
+  simp [Fin.foldl.loop]
 
+end ET12

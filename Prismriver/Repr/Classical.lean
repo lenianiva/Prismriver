@@ -21,6 +21,16 @@ instance : ToString Accidental where
       let n := Int.natAbs a.semitones
       String.join (List.replicate n one)
 
+
+theorem toString_zero_semitones (a : Accidental) (h : a.semitones = 0) :
+  toString a = "♮" := by
+  unfold toString
+  unfold instToStringAccidental
+  simp only []
+  rw [h]
+  simp
+
+
 inductive Oct where
   | a
   | b
