@@ -1,13 +1,21 @@
 namespace Prismriver
 
-/-- A scale with a particular fundamental harmonic ratio and pitch type -/
-class Scale (P : Type) where
+/-- A set of permitted notes -/
+class PseudoScale (P : Type) where
   name : String
+  -- The list of all permitted notes on the scale. For periodic scales this should return empty
+  allNotes : List P := []
+
+class PseudoScaleLift (P₁ P₂ : Type) (src : PseudoScale P₁) (dst : PseudoScale P₂) where
+  lift : P₁ → P₂
+
+/-- A scale with a repeating fundamental interval -/
+class Scale (P : Type) extends PseudoScale P where
   -- List all notes in the n₀th interval (usually an octave)
   notes (n₀ : Int) : List P
 
-class ScaleLift (P₁ P₂ : Type) (src : Scale P₁) (dst : Scale P₂) where
-  lift : P₁ → P₂
+class ScaleLift (P₁ P₂ : Type) (src : Scale P₁) (dst : Scale P₂)
+  extends PseudoScaleLift P₁ P₂ src.toPseudoScale dst.toPseudoScale where
 
 namespace ET12
 
