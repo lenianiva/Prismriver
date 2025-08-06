@@ -74,23 +74,32 @@ structure Tone where
   deriving BEq, Inhabited
 
 instance : ToString Tone where
-  toString t := s!"{t.name}{t.acc}"
+  toString t := if t.acc == .natural then toString t.name else s!"{t.name}{t.acc}"
 instance : Coe Oct Tone where
   coe name := { name }
 
-structure Pitch (modus : Oct) (root : Tone) extends Tone where
+structure Pitch (root : Tone) (modus : Oct) extends Tone where
   octave : Int
   deriving BEq, Inhabited
 
-instance : ToString (Pitch modus root)  where
+instance : ToString (Pitch root modus)  where
   toString p := s!"{p.toTone}{p.octave}"
 
-instance : Scale (Pitch modus root) where
-  name := s!"{root} {modus.modus}"
-  notes octave := Fin.foldl (n := 7) (init := []) λ acc name =>
-    { octave, name } :: acc
+def spaces := [2, 1, 2, 2, 1, 2, 2]
 
-instance : ScaleLift (Pitch modus root) ET12.Pitch where
+instance : Scale (Pitch root modus) where
+  name := s!"{root} {modus.modus}"
+  notes octave := List.finRange 7 |>.map λ i =>
+    let name := i.add root.name
+    -- Nominal shift if the letters are read directly with the same accidentals
+    let shiftNominal := (root.name : Fin 7).toNat.repeat List.rotateLeft spaces
+      |>.take i.toNat |>.sum
+    -- Actual shift determined by modus
+    let shiftModus := (modus : Fin 7).toNat.repeat List.rotateLeft spaces
+      |>.take i.toNat |>.sum
+    { octave, name, acc := ⟨shiftModus - shiftNominal⟩ }
+
+instance : ScaleLift (Pitch root modus) ET12.Pitch where
   lift p :=
     -- FIXME: Calculate proper offset
     { octave := p.octave, offset := 0 }
@@ -98,5 +107,7 @@ instance : ScaleLift (Pitch modus root) ET12.Pitch where
 -- Examples
 #eval (⟨.c, .natural⟩: Tone)
 #eval (⟨.d, .sharp⟩: Tone)
-#eval ({ name :=.d, octave := 4 }: (Pitch .d Oct.g))
-#eval (instScalePitch : Scale (Pitch .d ⟨.e, .sharp⟩)).name
+#eval ({ name :=.d, octave := 4 }: (Pitch Oct.g .d))
+#eval (instScalePitch : Scale (Pitch ⟨.e, .sharp⟩ .d)).name
+#eval (instScalePitch : Scale (Pitch ⟨.d, .natural⟩ .a)).notes 5
+#eval (instScalePitch : Scale (Pitch ⟨.f, .natural⟩ .d)).notes 5
