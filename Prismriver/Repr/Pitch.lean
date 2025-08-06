@@ -6,7 +6,7 @@ class Scale (P : Type) where
   -- List all notes in the n₀th interval (usually an octave)
   notes (n₀ : Int) : List P
 
-class ScaleLift (P₁ P₂ : Type) [Scale P₁] [Scale P₂] where
+class ScaleLift (P₁ P₂ : Type) (src : Scale P₁) (dst : Scale P₂) where
   lift : P₁ → P₂
 
 namespace ET12

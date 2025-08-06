@@ -78,16 +78,16 @@ instance : ToString Tone where
 instance : Coe Oct Tone where
   coe name := { name }
 
-structure Pitch (root : Tone) (modus : Oct) extends Tone where
+structure Pitch extends Tone where
   octave : Int
   deriving BEq, Inhabited
 
-instance : ToString (Pitch root modus)  where
+instance : ToString Pitch where
   toString p := s!"{p.toTone}{p.octave}"
 
 def spaces := [2, 1, 2, 2, 1, 2, 2]
 
-instance : Scale (Pitch root modus) where
+instance diatonic (root : Tone) (modus : Oct) : Scale Pitch where
   name := s!"{root} {modus.modus}"
   notes octave := List.finRange 7 |>.map λ i =>
     let name := i.add root.name
@@ -99,7 +99,7 @@ instance : Scale (Pitch root modus) where
       |>.take i.toNat |>.sum
     { octave, name, acc := ⟨shiftModus - shiftNominal + root.acc.semitones⟩ }
 
-instance : ScaleLift (Pitch root modus) ET12.Pitch where
+instance diatonicLift root modus : ScaleLift Pitch ET12.Pitch (src := diatonic root modus) (dst := ET12.instScalePitch) where
   lift p :=
     -- FIXME: Calculate proper offset
     { octave := p.octave, offset := 0 }
@@ -107,7 +107,7 @@ instance : ScaleLift (Pitch root modus) ET12.Pitch where
 -- Examples
 #eval (⟨.c, .natural⟩: Tone)
 #eval (⟨.d, .sharp⟩: Tone)
-#eval ({ name :=.d, octave := 4 }: (Pitch Oct.g .d))
-#eval (instScalePitch : Scale (Pitch ⟨.e, .sharp⟩ .d)).name
-#eval (instScalePitch : Scale (Pitch ⟨.d, .natural⟩ .a)).notes 5
-#eval (instScalePitch : Scale (Pitch ⟨.f, .natural⟩ .d)).notes 5
+#eval ({ name :=.d, octave := 4 }: Pitch)
+#eval (diatonic ⟨.e, .sharp⟩ .d).name
+#eval (diatonic ⟨.d, .natural⟩ .a).notes 5
+#eval (diatonic ⟨.f, .natural⟩ .d).notes 5
