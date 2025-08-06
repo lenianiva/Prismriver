@@ -2,6 +2,7 @@ namespace Prismriver
 
 /-- A scale with a particular fundamental harmonic ratio and pitch type -/
 class Scale (P : Type) where
+  name : String
   -- List all notes in the n₀th interval (usually an octave)
   notes (n₀ : Int) : List P
 
@@ -15,6 +16,7 @@ structure Pitch where
   offset : Fin 12
 
 instance : Scale Pitch where
+  name := "12-ET"
   notes octave := Fin.foldl (n := 12) (init := []) λ acc offset =>
     { octave, offset } :: acc
 

@@ -85,8 +85,8 @@ structure Pitch (modus : Oct) (root : Tone) extends Tone where
 instance : ToString (Pitch modus root)  where
   toString p := s!"{p.toTone}{p.octave}"
 
-
 instance : Scale (Pitch modus root) where
+  name := s!"{root} {modus.modus}"
   notes octave := Fin.foldl (n := 7) (init := []) λ acc name =>
     { octave, name } :: acc
 
@@ -99,3 +99,4 @@ instance : ScaleLift (Pitch modus root) ET12.Pitch where
 #eval (⟨.c, .natural⟩: Tone)
 #eval (⟨.d, .sharp⟩: Tone)
 #eval ({ name :=.d, octave := 4 }: (Pitch .d Oct.g))
+#eval (instScalePitch : Scale (Pitch .d ⟨.e, .sharp⟩)).name
