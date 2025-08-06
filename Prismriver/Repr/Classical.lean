@@ -97,7 +97,7 @@ instance : Scale (Pitch root modus) where
     -- Actual shift determined by modus
     let shiftModus := (modus : Fin 7).toNat.repeat List.rotateLeft spaces
       |>.take i.toNat |>.sum
-    { octave, name, acc := ⟨shiftModus - shiftNominal⟩ }
+    { octave, name, acc := ⟨shiftModus - shiftNominal + root.acc.semitones⟩ }
 
 instance : ScaleLift (Pitch root modus) ET12.Pitch where
   lift p :=
