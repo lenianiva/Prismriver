@@ -89,7 +89,7 @@ def spaces := [2, 1, 2, 2, 1, 2, 2]
 
 instance diatonic (root : Tone) (modus : Oct) : Scale Pitch where
   name := s!"{root} {modus.modus}"
-  notes octave := List.finRange 7 |>.map λ i =>
+  pitches octave := List.finRange 7 |>.map λ i =>
     let name := i.add root.name
     -- Nominal shift if the letters are read directly with the same accidentals
     let shiftNominal := (root.name : Fin 7).toNat.repeat List.rotateLeft spaces
@@ -99,7 +99,7 @@ instance diatonic (root : Tone) (modus : Oct) : Scale Pitch where
       |>.take i.toNat |>.sum
     { octave, name, acc := ⟨shiftModus - shiftNominal + root.acc.semitones⟩ }
 
-instance diatonicLift root modus : ScaleLift Pitch ET12.Pitch (src := diatonic root modus) (dst := ET12.instScalePitch) where
+instance diatonicLift root modus : ScaleLift Pitch ET12.Pitch (src := diatonic root modus) (dst := ET12.scale) where
   lift p :=
     -- FIXME: Calculate proper offset
     { octave := p.octave, offset := 0 }
@@ -109,5 +109,5 @@ instance diatonicLift root modus : ScaleLift Pitch ET12.Pitch (src := diatonic r
 #eval (⟨.d, .sharp⟩: Tone)
 #eval ({ name :=.d, octave := 4 }: Pitch)
 #eval (diatonic ⟨.e, .sharp⟩ .d).name
-#eval (diatonic ⟨.d, .natural⟩ .a).notes 5
-#eval (diatonic ⟨.f, .natural⟩ .d).notes 5
+#eval (diatonic ⟨.d, .natural⟩ .a).pitches 5
+#eval (diatonic ⟨.f, .natural⟩ .d).pitches 5
