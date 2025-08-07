@@ -6,6 +6,10 @@ class PseudoScale (P : Type) where
   -- The list of all permitted notes on the scale. For periodic scales this should return empty
   allNotes : List P := []
 
+/-- We make no distinction between scales and tuning systems. They are
+represented by the same class. For example, a tuning system could be represented
+as a scale with raw frequencies, and any abstract scale could be lifted into the
+raw frequency scale. This would represent tuning. -/
 class PseudoScaleLift (P₁ P₂ : Type) (src : PseudoScale P₁) (dst : PseudoScale P₂) where
   lift : P₁ → P₂
 
@@ -23,10 +27,13 @@ structure Pitch where
   octave : Int
   offset : Fin 12
 
-instance : Scale Pitch where
+instance scale : Scale Pitch where
   name := "12-ET"
-  notes octave := Fin.foldl (n := 12) (init := []) λ acc offset =>
-    { octave, offset } :: acc
+  notes octave := List.finRange 12 |>.map λ offset =>
+    { octave, offset }
+
+theorem et12_notes (octave : Int) : (scale.notes octave).length = 12 := by
+  rfl
 
 end ET12
 
