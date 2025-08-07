@@ -1,9 +1,9 @@
-import Prismriver.Repr.Pitch
+import Prismriver.Repr.Scale
 
 namespace Prismriver.Classical
 
+/-- Accidental measured in terms of the number of semitones from natural. -/
 structure Accidental where
-  -- offset in terms of semitones
   semitones : Int := 0
   deriving BEq, Inhabited
 
@@ -21,7 +21,8 @@ instance : ToString Accidental where
       let n := Int.natAbs a.semitones
       String.join (List.replicate n one)
 
-inductive Oct where
+/-- This represents the name of a note in the heptatonic scale. -/
+inductive Hep where
   | a
   | b
   | c
@@ -31,7 +32,7 @@ inductive Oct where
   | g
   deriving BEq, Inhabited
 
-instance : ToString Oct where
+instance : ToString Hep where
   toString
     | .a => "a"
     | .b => "b"
@@ -41,7 +42,9 @@ instance : ToString Oct where
     | .f => "f"
     | .g => "g"
 
-protected def Oct.modus : Oct → String
+/-- The name of the scale when all notes are ♮ and when the scale's root starts
+on some particular note. For example, a scale `d e f g a b c` is Dorian. -/
+protected def Hep.modus : Hep → String
   | .c => "major" -- also ionian
   | .d => "dorian"
   | .e => "phrygian"
@@ -49,7 +52,7 @@ protected def Oct.modus : Oct → String
   | .g => "mixolydian"
   | .a => "minor" -- also aeolian
   | .b => "locrian"
-instance : Coe Oct (Fin 7) where
+instance : Coe Hep (Fin 7) where
   coe
     | .c => 2
     | .d => 3
@@ -58,7 +61,7 @@ instance : Coe Oct (Fin 7) where
     | .g => 6
     | .a => 0
     | .b => 1
-instance : Coe (Fin 7) Oct where
+instance : Coe (Fin 7) Hep where
   coe
     | 0 => .a
     | 1 => .b
@@ -67,29 +70,26 @@ instance : Coe (Fin 7) Oct where
     | 4 => .e
     | 5 => .f
     | 6 => .g
+protected def Hep.toNat (h : Hep) := (h : Fin 7).toNat
 
 structure Tone where
-  name : Oct
+  name : Hep
   acc : Accidental := .natural
   deriving BEq, Inhabited
 
 instance : ToString Tone where
   toString t := if t.acc == .natural then toString t.name else s!"{t.name}{t.acc}"
-instance : Coe Oct Tone where
+instance : Coe Hep Tone where
   coe name := { name }
 
-structure Pitch extends Tone where
-  octave : Int
-  deriving BEq, Inhabited
-
-instance : ToString Pitch where
-  toString p := s!"{p.toTone}{p.octave}"
+instance : ToString (Pitch Tone) where
+  toString p := s!"{p.tone}{p.n}"
 
 def spaces := [2, 1, 2, 2, 1, 2, 2]
 
-instance diatonic (root : Tone) (modus : Oct) : Scale Pitch where
+instance diatonic (root : Tone) (modus : Hep) : Scale Tone where
   name := s!"{root} {modus.modus}"
-  pitches octave := List.finRange 7 |>.map λ i =>
+  tones := List.finRange 7 |>.map λ i =>
     let name := i.add root.name
     -- Nominal shift if the letters are read directly with the same accidentals
     let shiftNominal := (root.name : Fin 7).toNat.repeat List.rotateLeft spaces
@@ -97,9 +97,17 @@ instance diatonic (root : Tone) (modus : Oct) : Scale Pitch where
     -- Actual shift determined by modus
     let shiftModus := (modus : Fin 7).toNat.repeat List.rotateLeft spaces
       |>.take i.toNat |>.sum
-    { octave, name, acc := ⟨shiftModus - shiftNominal + root.acc.semitones⟩ }
+    { name, acc := ⟨shiftModus - shiftNominal + root.acc.semitones⟩ }
 
-instance diatonicLift root modus : ScaleLift Pitch ET12.Pitch (src := diatonic root modus) (dst := ET12.scale) where
-  lift p :=
+instance diatonicLift root modus : ScaleLift Tone EqualTemp.Tone12 (src := diatonic root modus) (dst := EqualTemp.et12) where
+  liftPitch pitch :=
+    -- Nominal shift if the letters are read directly with the same accidentals
+    let shiftNominal := (root.name : Fin 7).toNat.repeat List.rotateLeft spaces
+      |>.take pitch.tone.name.toNat |>.sum
+    let total := shiftNominal + pitch.tone.acc.semitones
+    let Δoct := Int.fdiv total 12
+    let semi := Int.fmod total 12 |>.toNat
+    have : semi < 12 := by
+      sorry
     -- FIXME: Calculate proper offset
-    { octave := p.octave, offset := 0 }
+    { n := pitch.n + Δoct, tone := ⟨semi, ‹semi < 12›⟩ }
