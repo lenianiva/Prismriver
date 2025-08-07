@@ -1,2 +1,2 @@
-mod midi;
+pub mod midi;
 mod primitive;
