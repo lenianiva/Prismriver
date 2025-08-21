@@ -1,4 +1,4 @@
-import Prismriver.Repr.Pitch
+import Prismriver.Repr.Scale
 import Prismriver.Repr.Duration
 
 namespace Prismriver
