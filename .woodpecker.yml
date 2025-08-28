@@ -1,0 +1,21 @@
+matrix:
+  RUST: [stable, beta, nightly]
+
+steps:
+  - name: lean
+    image: leanprovercommunity/lean4:latest
+    commands:
+      - lake update
+      - lake build
+      - lake test  
+    when:
+      event: [push, pull_request]
+  - name: rust
+    image: rust 
+    commands:
+      - rustup default $RUST
+      - cargo check
+      - cargo test
+    when:
+      event: [push, pull_request] 
+     
