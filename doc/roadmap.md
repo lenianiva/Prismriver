@@ -8,16 +8,17 @@ Prismriver fulfills 3 objectives:
 
 ## Syntax
 
-The main syntax category is `music`:
+The main syntax category for writing notes is `music`. Outside of this syntax
+category, we use the normal Lean syntax.
 
 Example:
+```lean4
+def part1 : Part := {
+  reference := `c4,
+  key := .b.flat.minor,
+  timesignature := ⟨4, 4⟩,
+  notes := ♩[ c4 c d d e e | f f g g a a ]
+}
 ```
-set reference c4
-set key .b.flat.minor
-set timesignature 4/4
 
-e f ...
-```
-
-The notation for individual notes follows the Lilypond convention, but the
-directives for infrequent operations are different.
+The notation for individual notes follows the LilyPond convention.
