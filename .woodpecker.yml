@@ -1,6 +1,3 @@
-matrix:
-  RUST: [stable, beta, nightly]
-
 steps:
   - name: test
     # We have to use an image that has both rustup and lean, because the lean
@@ -11,7 +8,6 @@ steps:
       - . ~/.profile
       - apt-get update && apt-get install -y clang libasound2-dev
 
-      - rustup default $RUST
       - cargo check
       - cargo test
       - lake update
