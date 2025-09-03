@@ -9,5 +9,3 @@ Install `pre-commit`, and run
 ``` sh
 pre-commit install --install-hooks
 ```
-
-`
