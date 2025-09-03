@@ -2,22 +2,19 @@ matrix:
   RUST: [stable, beta, nightly]
 
 steps:
-  - name: lean
-    # We have to use an image that has both rustup and lean
+  - name: test
+    # We have to use an image that has both rustup and lean, because the lean
+    # part depends on rust and the rust part depends on lean.
     image: rust
     commands:
       - curl https://elan.lean-lang.org/elan-init.sh -sSf | sh -s -- -y
-      - rustup default $RUST
-      - lake update
-      - lake build
-      - lake test
-    when:
-      event: [push, pull_request]
-  - name: rust
-    image: rust
-    commands:
+      - source ~/.profile
+
       - rustup default $RUST
       - cargo check
       - cargo test
+      - lake update
+      - lake build
+      - lake test
     when:
       event: [push, pull_request]
