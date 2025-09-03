@@ -8,7 +8,7 @@ steps:
     image: rust
     commands:
       - curl https://elan.lean-lang.org/elan-init.sh -sSf | sh -s -- -y
-      - source ~/.profile
+      - . ~/.profile
 
       - rustup default $RUST
       - cargo check
