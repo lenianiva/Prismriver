@@ -9,6 +9,7 @@ steps:
     commands:
       - curl https://elan.lean-lang.org/elan-init.sh -sSf | sh -s -- -y
       - . ~/.profile
+      - apt-get update && apt-get install -y libasound2-dev
 
       - rustup default $RUST
       - cargo check
