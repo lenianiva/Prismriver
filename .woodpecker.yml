@@ -3,9 +3,11 @@ matrix:
 
 steps:
   - name: lean
-    image: leanprovercommunity/lean4:latest
+    # We have to use an image that has both rustup and lean
+    image: rust
     commands:
-      - apt-get install -y rustup
+      - curl https://elan.lean-lang.org/elan-init.sh -sSf | sh -s -- -y
+      - rustup default $RUST
       - lake update
       - lake build
       - lake test
