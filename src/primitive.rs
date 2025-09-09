@@ -36,3 +36,11 @@ pub fn unit() -> lean::lean_obj_res {
 pub fn io_unit() -> IOResult {
 	unsafe { lean::lean_io_result_mk_ok(lean::lean_box(0)) }
 }
+
+#[cfg(test)]
+mod tests {
+	#[test]
+	fn test_placeholder() {
+		assert_eq!(0, 0);
+	}
+}
