@@ -8,7 +8,7 @@ steps:
       - . ~/.profile
       - apt-get update && apt-get install -y clang libasound2-dev
       - export LEAN_ROOT=$(lake env printenv LEAN_SYSROOT)
-      - export DYLD_LIBRARY_PATH=$LEAN_ROOT/lib/lean
+      - export LD_LIBRARY_PATH=$LEAN_ROOT/lib/lean
 
       - cargo check
       - cargo test
