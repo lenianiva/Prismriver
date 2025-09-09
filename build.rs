@@ -1,7 +1,6 @@
 use std::{env, path::PathBuf, process::Command};
 
-fn main() -> Result<(), Box<dyn std::error::Error>>
-{
+fn main() -> Result<(), Box<dyn std::error::Error>> {
 	let lean_root = if let Ok(lean_root) = env::var("LEAN_ROOT") {
 		lean_root
 	} else if let Ok(output) = Command::new("lean").arg("--print-prefix").output() {
