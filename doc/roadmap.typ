@@ -22,10 +22,14 @@
 )
 
 == Motivation
+Prismriver aims to achieve the following:
+1. To formalize mathematical analysis of music.
+2. Programmatic generation of music. 
+3. DSL to write sheet music and other file formats of music.
 
-Lean's flexible and extensible syntax system allows us to implement a DSL for
+Lean is a proof assistant with rapidly growing popularity, and actively maintained infrastructure support. Lean's flexible and extensible syntax system allows us to implement a DSL for
 music. The highly structured nature of music means it could be represented as
-text, version controlled, and analysed programmatically.
+text, version controlled, and analysed programmatically. Lean also has the unique advantage of mathlib4, which can be used for formalizing analysis of music.
 
 == Representation
 
