@@ -43,4 +43,3 @@ pub extern "C" fn prismriver_ping(x: u8, _: primitive::lean::lean_obj_arg) -> pr
 	}
 	primitive::io_unit()
 }
-

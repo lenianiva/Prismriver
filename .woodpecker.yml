@@ -1,0 +1,24 @@
+matrix:
+  platform:
+   - darwin/aarch64
+   - linux/amd64
+
+
+steps:
+  - name: test
+    # We have to use an image that has both rustup and lean, because the lean
+    # part depends on rust and the rust part depends on lean.
+    image: rust
+    commands:
+      - curl https://elan.lean-lang.org/elan-init.sh -sSf | sh -s -- -y
+      - . ~/.profile
+      - apt-get update && apt-get install -y clang libasound2-dev
+
+      - cargo check
+      - cargo test
+      - lake update
+      - lake build
+      - lake test
+    when:
+      event: [push, pull_request]
+      platform: [darwin/aarch64, linux/amd64] 
