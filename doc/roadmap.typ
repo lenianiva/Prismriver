@@ -61,7 +61,16 @@ passage of time compared to the notation (e.g. fermata).
 
 == Music Algorithms
 
-=== Counterpoint
+=== Counterpoint Theory
+We aim to represent counterpoint using Prismriver's existing DSL primitives. We are interested in the following:
+1. Provide library support to enable users to write proofs about Counterpoint theory.
+2. Ability to sonify Prismriver's counterpoint representation. 
+
+==== Counterpoint Representation 
+// note - it might be interesting to see if we can use coinduction with counterpoint theory
+
+==== Species Counterpoint
+Species counterpoint are different sets of rules for composing counterpoint. We aim to provide a first species class that can be extended to higher species. A user can compose within species constraints and prove properties about species. 
 
 === Key Estimation
 
@@ -86,3 +95,4 @@ feature is inspired by Alda.
 ```
 
 === LilyPond
+
