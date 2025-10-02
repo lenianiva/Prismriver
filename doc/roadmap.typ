@@ -48,7 +48,12 @@ frequencies.
 
 === Time
 
-The representation of time is based on MusicXML.
+The representation of time is based on MusicXML. Like scales, there are two
+layers of time representation. The `Time` class is an abstract representation of
+time which imposes no restrictions on the type of time. A `Metre` is a subclass
+of `Time` which has rational times and should be used for writing music. The
+reason for this decision is that musical directives may change the actual
+passage of time compared to the notation (e.g. fermata).
 
 == Music Algorithms
 
