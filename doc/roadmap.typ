@@ -19,13 +19,14 @@
   align(center)[
     Chris Henson \
     Drexel University \
-    #link("mailto:ch3474@drexel.edu")
+    #link("mailto:ch3473@drexel.edu")
   ],
 )
 
 == Motivation
 
-Prismriver aims to fulfil 3 obejctives:
+Prismriver #footnote[#link("https://codeberg.org/aniva/Prismriver")] aims to
+fulfil 3 obejctives:
 
 1. Formalization the mathematical analysis of music.
 2. Music representation using a DSL
@@ -40,9 +41,7 @@ used for formalizing analysis of music.
 
 In order for Prismriver to be compatible with existing music infrastructure, it
 can parse/generate MusicXML. Meanwhile it is also compatible with xenharmonic
-systems and exotic tuning systems.
-
-#link("https://codeberg.org/aniva/Prismriver")
+systems and exotic or abstract time signatures.
 
 == Representation
 
@@ -97,11 +96,13 @@ user can compose within species constraints and prove properties about species.
 === Key Estimation
 
 With the help of probability theory libraries, we can perform key estimation by
-evaluating the probability that a music piece is of a particular key.
+evaluating the probability that a music piece is of a particular key. This
+algorithm should be sufficiently general to test enharmonically equivalent keys.
+Key estimation can be viewed as the opposite of a `PseudoScaleLift`.
 
 == Engineering
 
-=== Scales
+=== Diatonic Scales
 
 A diatonic scale in western music theory is specified with a root tone (which
 can be e.g. $A sharp$, or $C natural$) with a modus. The modus is a tone name
@@ -120,9 +121,11 @@ instance diatonic (root : Tone) (modus : Hep) : Scale Tone where
 ```
 
 Without a tuning system, enharmonic tones are fundamentally different. e.g.
-$.e.natural eq.not .f.flat$.
+$.e.natural eq.not .f.flat$. This is intentional.
 
 === Music Sequence Representation
+
+We can represent music sequences with the `music` syntax category.
 
 ```lean
 def part1 : Part := {
