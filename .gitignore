@@ -3,3 +3,5 @@
 !.pre-commit-config.yaml
 
 /target
+
+*.pdf
