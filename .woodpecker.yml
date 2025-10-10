@@ -1,3 +1,9 @@
+matrix:
+  platform:
+   - darwin/aarch64
+   - linux/amd64
+
+
 steps:
   - name: test
     # We have to use an image that has both rustup and lean, because the lean
@@ -17,3 +23,4 @@ steps:
       - lake test
     when:
       event: [push, pull_request]
+      platform: [darwin/aarch64, linux/amd64] 
