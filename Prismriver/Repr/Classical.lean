@@ -87,6 +87,23 @@ instance : ToString (Pitch Tone) where
 
 def spaces := [2, 1, 2, 2, 1, 2, 2]
 
+structure Interval where
+    acc : Accidental := .natural
+    nameDiff : Fin 7
+    deriving BEq, Inhabited
+
+instance : ToString Interval where
+   toString t := s!"Interval(nameDiff: {t.nameDiff.val}, acc: {t.acc})"
+
+def mkInterval (root: Hep) (interval : Interval) : Hep :=
+  let rootAsNum : Fin 7 := root
+  let resultNum : Fin 7 := rootAsNum + interval.nameDiff
+  resultNum
+
+def intervalDiff (note1 note2 : Hep) : Interval :=
+  let diff : Fin 7 := note2 - note1
+  ⟨.natural, diff⟩
+
 instance diatonic (root : Tone) (modus : Hep) : Scale Tone where
   name := s!"{root} {modus.modus}"
   tones := List.finRange 7 |>.map λ i =>
