@@ -21,6 +21,13 @@ instance : ToString Accidental where
       let n := Int.natAbs a.semitones
       String.join (List.replicate n one)
 
+instance : Add Accidental where
+  add x y := { semitones := x.semitones + y.semitones }
+instance : Sub Accidental where
+  sub x y := { semitones := x.semitones - y.semitones }
+instance : HMul Int Accidental Accidental where
+  hMul n x := { semitones := n * x.semitones }
+
 /-- This represents the name of a note in the heptatonic scale. -/
 inductive Hep where
   | a
@@ -87,22 +94,28 @@ instance : ToString (Pitch Tone) where
 
 def spaces := [2, 1, 2, 2, 1, 2, 2]
 
+/-- An interval consists of a letter distance and a semitone distance -/
 structure Interval where
-    acc : Accidental := .natural
-    nameDiff : Fin 7
-    deriving BEq, Inhabited
+  diff : Int
+  acc : Accidental := .natural
+  deriving BEq, Inhabited
 
 instance : ToString Interval where
-   toString t := s!"Interval(nameDiff: {t.nameDiff.val}, acc: {t.acc})"
+  toString i := s!"Interval(nameDiff: {i.diff}, acc: {i.acc})"
 
-def mkInterval (root: Hep) (interval : Interval) : Hep :=
-  let rootAsNum : Fin 7 := root
-  let resultNum : Fin 7 := rootAsNum + interval.nameDiff
-  resultNum
+instance : Add Interval where
+  add x y := { diff := x.diff + y.diff, acc := x.acc + y.acc }
+instance : Sub Interval where
+  sub x y := { diff := x.diff - y.diff, acc := x.acc - y.acc }
+instance : HMul Int Interval Interval where
+  hMul n x := { diff := n * x.diff, acc := n * x.acc }
 
-def intervalDiff (note1 note2 : Hep) : Interval :=
-  let diff : Fin 7 := note2 - note1
-  ⟨.natural, diff⟩
+instance : HAdd (Pitch Tone) Interval (Pitch Tone) where
+  hAdd p i :=
+    let name := sorry
+    let acc := sorry
+    let Δn := sorry
+    { tone := { name, acc }, n := p.n + Δn }
 
 instance diatonic (root : Tone) (modus : Hep) : Scale Tone where
   name := s!"{root} {modus.modus}"
