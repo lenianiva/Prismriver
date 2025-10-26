@@ -25,8 +25,8 @@ instance : Add Accidental where
   add x y := { semitones := x.semitones + y.semitones }
 instance : Sub Accidental where
   sub x y := { semitones := x.semitones - y.semitones }
-instance : HMul Int Accidental Accidental where
-  hMul n x := { semitones := n * x.semitones }
+instance : HPow Accidental Int Accidental where
+  hPow x n := { semitones := n * x.semitones }
 
 /-- This represents the name of a note in the heptatonic scale. -/
 inductive Hep where
@@ -89,7 +89,9 @@ instance : ToString Tone where
 instance : Coe Hep Tone where
   coe name := { name }
 
-instance : ToString (Pitch Tone) where
+abbrev Pitch := Prismriver.Pitch Tone
+
+instance : ToString Pitch where
   toString p := s!"{p.tone}{p.n}"
 
 def spaces := [2, 1, 2, 2, 1, 2, 2]
@@ -107,10 +109,13 @@ instance : Add Interval where
   add x y := { diff := x.diff + y.diff, acc := x.acc + y.acc }
 instance : Sub Interval where
   sub x y := { diff := x.diff - y.diff, acc := x.acc - y.acc }
-instance : HMul Int Interval Interval where
-  hMul n x := { diff := n * x.diff, acc := n * x.acc }
+instance : HPow Interval Int Interval where
+  hPow x n := { diff := n * x.diff, acc := x.acc ^ n }
 
-instance : HAdd (Pitch Tone) Interval (Pitch Tone) where
+instance : HSub Pitch Pitch (outParam Interval) where
+  hSub p1 p2 := { diff := sorry, acc := p1.tone.acc - p2.tone.acc }
+/-- Group action of interval group on the set of pitches -/
+instance : HAdd Pitch Interval (outParam Pitch) where
   hAdd p i :=
     let name := sorry
     let acc := sorry
