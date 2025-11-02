@@ -7,9 +7,11 @@ structure Accidental where
   semitones : Int := 0
   deriving BEq, Inhabited
 
-protected def Accidental.natural : Accidental := ⟨0⟩
-protected def Accidental.sharp : Accidental := ⟨1⟩
-protected def Accidental.flat : Accidental := ⟨-1⟩
+namespace Accidental
+
+protected def natural : Accidental := ⟨0⟩
+protected def sharp : Accidental := ⟨1⟩
+protected def flat : Accidental := ⟨-1⟩
 
 instance : ToString Accidental where
   toString a :=
@@ -21,12 +23,18 @@ instance : ToString Accidental where
       let n := Int.natAbs a.semitones
       String.join (List.replicate n one)
 
+protected def toSuffix : Accidental → String
+  | ⟨0⟩ => ""
+  | a => toString a
+
 instance : Add Accidental where
   add x y := { semitones := x.semitones + y.semitones }
 instance : Sub Accidental where
   sub x y := { semitones := x.semitones - y.semitones }
 instance : SMul Int Accidental where
   smul n x := { semitones := n * x.semitones }
+
+end Accidental
 
 /-- This represents the name of a note in the heptatonic scale. -/
 inductive Hep where
@@ -108,7 +116,6 @@ protected def Pitch.octave (p : Pitch) : Int :=
 instance : ToString Pitch where
   toString t := s!"{t.tone}{t.octave}"
 
-
 /-- An interval consists of a letter distance and a semitone distance -/
 structure Interval where
   name : Int
@@ -117,15 +124,41 @@ structure Interval where
 
 namespace Interval
 
-  def octave : Interval := { name := 7, semitones := 12 }
-  def p4 : Interval := { name := 3, semitones := 5 }
-  def p5 : Interval := { name := 4, semitones := 7 }
+def octave : Interval := { name := 7, semitones := 12 }
+def p4 : Interval := { name := 3, semitones := 5 }
+def p5 : Interval := { name := 4, semitones := 7 }
 
 instance : Coe Accidental Interval where
   coe acc := { acc with name := 0}
 
+inductive Quality
+  | p (semitones : Nat)
+  | mM (minorSemitones majorSemitones : Nat)
+
+def intervalNames : List Quality :=
+  [.p 0, .mM 1 2, .mM 3 4, .p 5, .p 7, .mM 8 9, .mM 10 11]
+
 instance : ToString Interval where
-  toString i := s!"Interval(#{i.name}, S{i.semitones})"
+  toString i :=
+    let h : Fin 7 := Fin.intCast i.name
+    let octaves := Int.fdiv i.name 7
+    match intervalNames[h] with
+    | .p 0 =>
+      let head := if octaves == 0 then "u" else "{octaves}o"
+      let acc : Accidental := ⟨i.semitones - 12 * octaves⟩
+      s!"{head}{acc.toSuffix}"
+    | .p semitones =>
+      let acc : Accidental := ⟨i.semitones - semitones - 12 * octaves⟩
+      s!"P{i.name+1}{acc.toSuffix}"
+    | .mM minorSemitones majorSemitones =>
+      let nominalSemitones := i.semitones - 12 * octaves
+      let (marker, semitones) :=
+        if nominalSemitones ≤ minorSemitones then
+          ("m", minorSemitones)
+        else
+          ("M", majorSemitones)
+      let acc : Accidental := ⟨nominalSemitones - semitones⟩
+      s!"{marker}{i.name+1}{acc.toSuffix}"
 
 instance : Add Interval where
   add x y := { name := x.name + y.name, semitones := x.semitones + y.semitones }
@@ -133,6 +166,11 @@ instance : Sub Interval where
   sub x y := { name := x.name - y.name, semitones := x.semitones - y.semitones }
 instance : SMul Int Interval where
   smul n x := { name := n * x.name, semitones := n * x.semitones }
+
+example : toString (⟨1,2⟩ : Interval) = "M2" := rfl
+example : (toString p4) = "P4" := rfl
+example : (toString p5) = "P5" := rfl
+example : toString (p5 + Accidental.sharp) = "P5♯" := rfl
 
 end Interval
 
