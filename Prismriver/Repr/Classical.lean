@@ -25,8 +25,8 @@ instance : Add Accidental where
   add x y := { semitones := x.semitones + y.semitones }
 instance : Sub Accidental where
   sub x y := { semitones := x.semitones - y.semitones }
-instance : HPow Accidental Int Accidental where
-  hPow x n := { semitones := n * x.semitones }
+instance : SMul Int Accidental where
+  smul n x := { semitones := n * x.semitones }
 
 /-- This represents the name of a note in the heptatonic scale. -/
 inductive Hep where
@@ -61,23 +61,26 @@ protected def Hep.modus : Hep → String
   | .b => "locrian"
 instance : Coe Hep (Fin 7) where
   coe
-    | .c => 2
-    | .d => 3
-    | .e => 4
-    | .f => 5
-    | .g => 6
-    | .a => 0
-    | .b => 1
+    | .c => 0
+    | .d => 1
+    | .e => 2
+    | .f => 3
+    | .g => 4
+    | .a => 5
+    | .b => 6
 instance : Coe (Fin 7) Hep where
   coe
-    | 0 => .a
-    | 1 => .b
-    | 2 => .c
-    | 3 => .d
-    | 4 => .e
-    | 5 => .f
-    | 6 => .g
+    | 0 => .c
+    | 1 => .d
+    | 2 => .e
+    | 3 => .f
+    | 4 => .g
+    | 5 => .a
+    | 6 => .b
 protected def Hep.toNat (h : Hep) := (h : Fin 7).toNat
+
+/-- Semitone spaces between names -/
+def spaces := [2, 2, 1, 2, 2, 2, 1]
 
 structure Tone where
   name : Hep
@@ -86,45 +89,88 @@ structure Tone where
 
 instance : ToString Tone where
   toString t := if t.acc == .natural then toString t.name else s!"{t.name}{t.acc}"
-instance : Coe Hep Tone where
-  coe name := { name }
 
-abbrev Pitch := Prismriver.Pitch Tone
-
-instance : ToString Pitch where
-  toString p := s!"{p.tone}{p.n}"
-
-def spaces := [2, 1, 2, 2, 1, 2, 2]
-
-/-- An interval consists of a letter distance and a semitone distance -/
-structure Interval where
-  diff : Int
+structure Pitch where
+  name : Int
   acc : Accidental := .natural
   deriving BEq, Inhabited
 
+protected def Pitch.new (hep : Hep) (octave : Int) (acc : Accidental := .natural) : Pitch :=
+  { name := hep.toNat + octave * 7, acc }
+protected def Pitch.hep (p : Pitch) : Hep :=
+  let fin : Fin 7 := Fin.intCast p.name
+  fin
+protected def Pitch.tone (p : Pitch) : Tone :=
+  { name := p.hep, acc := p.acc }
+protected def Pitch.octave (p : Pitch) : Int :=
+  p.name / 7
+
+instance : ToString Pitch where
+  toString t := s!"{t.tone}{t.octave}"
+
+
+/-- An interval consists of a letter distance and a semitone distance -/
+structure Interval where
+  name : Int
+  semitones : Int
+  deriving BEq, Inhabited
+
+namespace Interval
+
+  def octave : Interval := { name := 7, semitones := 12 }
+  def p4 : Interval := { name := 3, semitones := 5 }
+  def p5 : Interval := { name := 4, semitones := 7 }
+
+instance : Coe Accidental Interval where
+  coe acc := { acc with name := 0}
+
 instance : ToString Interval where
-  toString i := s!"Interval(nameDiff: {i.diff}, acc: {i.acc})"
+  toString i := s!"Interval(#{i.name}, S{i.semitones})"
 
 instance : Add Interval where
-  add x y := { diff := x.diff + y.diff, acc := x.acc + y.acc }
+  add x y := { name := x.name + y.name, semitones := x.semitones + y.semitones }
 instance : Sub Interval where
-  sub x y := { diff := x.diff - y.diff, acc := x.acc - y.acc }
-instance : HPow Interval Int Interval where
-  hPow x n := { diff := n * x.diff, acc := x.acc ^ n }
+  sub x y := { name := x.name - y.name, semitones := x.semitones - y.semitones }
+instance : SMul Int Interval where
+  smul n x := { name := n * x.name, semitones := n * x.semitones }
+
+end Interval
+
+private def nameDistanceAux (total : Nat) (key : Hep) : Nat → Nat
+  | 0 => total
+  | remainder+1 =>
+    let key' : Fin 7 := key
+    let total := total + spaces[key']
+    nameDistanceAux total (key' + (1 : Fin 7)) remainder
+
+/-- Calculates the semitone distance between two pitches with no accidentals -/
+def nameDistance (n1 n2 : Int) : Int :=
+  if n1 ≤ n2 then
+    let fin : Fin 7 := Fin.intCast n1
+    nameDistanceAux 0 fin (Int.toNat (n2 - n1))
+  else
+    let fin : Fin 7 := Fin.intCast n2
+    let d : Int := nameDistanceAux 0 fin (Int.toNat (n1 - n2))
+    (-d : Int)
 
 instance : HSub Pitch Pitch (outParam Interval) where
-  hSub p1 p2 := { diff := sorry, acc := p1.tone.acc - p2.tone.acc }
+  hSub p1 p2 :=
+    let Δname := nameDistance p1.name p2.name
+    let Δacc := p1.acc - p2.acc
+    { name := Δname, semitones := Δname + Δacc.semitones }
 /-- Group action of interval group on the set of pitches -/
-instance : HAdd Pitch Interval (outParam Pitch) where
+instance : HAdd Pitch Interval Pitch where
   hAdd p i :=
-    let name := sorry
-    let acc := sorry
-    let Δn := sorry
-    { tone := { name, acc }, n := p.n + Δn }
+    let name := p.name + i.name
+    -- Semitones accounted for in the name
+    let Δsemitones := nameDistance p.name name
+    { name, acc := { semitones := i.semitones - Δsemitones} }
 
-instance diatonic (root : Tone) (modus : Hep) : Scale Tone where
+/-- 7-tone diatonic scale -/
+instance diatonic (root : Tone) (modus : Hep) : Scale Pitch Interval where
   name := s!"{root} {modus.modus}"
-  tones := List.finRange 7 |>.map λ i =>
+  fundamental := Interval.octave
+  pitches := List.finRange 7 |>.map λ i =>
     let name := i.add root.name
     -- Nominal shift if the letters are read directly with the same accidentals
     let shiftNominal := (root.name : Fin 7).toNat.repeat List.rotateLeft spaces
@@ -134,15 +180,14 @@ instance diatonic (root : Tone) (modus : Hep) : Scale Tone where
       |>.take i.toNat |>.sum
     { name, acc := ⟨shiftModus - shiftNominal + root.acc.semitones⟩ }
 
-instance diatonicLift root modus : ScaleLift Tone EqualTemp.Tone12 (src := diatonic root modus) (dst := EqualTemp.et12) where
+instance equalTempTuning root modus : Tuning Pitch EqualTemp.Pitch (src := (diatonic root modus).toPseudoScale) (dst := EqualTemp.et12.toPseudoScale) where
   liftPitch pitch :=
     -- Nominal shift if the letters are read directly with the same accidentals
     let shiftNominal := (root.name : Fin 7).toNat.repeat List.rotateLeft spaces
-      |>.take pitch.tone.name.toNat |>.sum
-    let total := shiftNominal + pitch.tone.acc.semitones
-    let Δoct := Int.fdiv total 12
-    let semi := Int.fmod total 12 |>.toNat
-    have : semi < 12 := by
-      sorry
-    -- FIXME: Calculate proper offset
-    { n := pitch.n + Δoct, tone := ⟨semi, ‹semi < 12›⟩ }
+      |>.take pitch.hep.toNat |>.sum
+    let total := shiftNominal + pitch.acc.semitones + pitch.octave * 12
+    total
+
+example : (Pitch.new .c 4) + Interval.octave = (Pitch.new .c 5) := rfl
+example : (Pitch.new .c 4) + Interval.p5 = (Pitch.new .g 4) := rfl
+example : (Pitch.new .b 5) + Interval.p5 = (Pitch.new .f 6 .sharp) := rfl
