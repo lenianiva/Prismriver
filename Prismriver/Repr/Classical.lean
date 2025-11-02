@@ -111,7 +111,7 @@ protected def Pitch.hep (p : Pitch) : Hep :=
 protected def Pitch.tone (p : Pitch) : Tone :=
   { name := p.hep, acc := p.acc }
 protected def Pitch.octave (p : Pitch) : Int :=
-  p.name / 7
+  Int.fdiv p.name 7
 
 instance : ToString Pitch where
   toString t := s!"{t.tone}{t.octave}"
@@ -125,8 +125,17 @@ structure Interval where
 namespace Interval
 
 def octave : Interval := { name := 7, semitones := 12 }
+def unison : Interval := ⟨0, 0⟩
+def mi2 : Interval := ⟨1, 1⟩
+def ma2 : Interval := ⟨1, 2⟩
+def mi3 : Interval := ⟨2, 3⟩
+def ma3 : Interval := ⟨2, 4⟩
 def p4 : Interval := { name := 3, semitones := 5 }
 def p5 : Interval := { name := 4, semitones := 7 }
+def mi6 : Interval := ⟨5, 8⟩
+def ma6 : Interval := ⟨5, 9⟩
+def mi7 : Interval := ⟨6, 10⟩
+def ma7 : Interval := ⟨6, 11⟩
 
 instance : Coe Accidental Interval where
   coe acc := { acc with name := 0}
@@ -167,7 +176,7 @@ instance : Sub Interval where
 instance : SMul Int Interval where
   smul n x := { name := n * x.name, semitones := n * x.semitones }
 
-example : toString (⟨1,2⟩ : Interval) = "M2" := rfl
+example : toString ma2 = "M2" := rfl
 example : (toString p4) = "P4" := rfl
 example : (toString p5) = "P5" := rfl
 example : toString (p5 + Accidental.sharp) = "P5♯" := rfl
@@ -178,11 +187,11 @@ private def nameDistanceAux (total : Nat) (key : Hep) : Nat → Nat
   | 0 => total
   | remainder+1 =>
     let key' : Fin 7 := key
-    let total := total + spaces[key']
-    nameDistanceAux total (key' + (1 : Fin 7)) remainder
+    let total' := total + spaces[key']
+    nameDistanceAux total' (key' + (1 : Fin 7)) remainder
 
-/-- Calculates the semitone distance between two pitches with no accidentals -/
-def nameDistance (n1 n2 : Int) : Int :=
+/-- Calculates the semitone distance of `n2 - n1` two pitches with no accidentals -/
+def nameDistance (n2 n1 : Int) : Int :=
   if n1 ≤ n2 then
     let fin : Fin 7 := Fin.intCast n1
     nameDistanceAux 0 fin (Int.toNat (n2 - n1))
@@ -195,13 +204,13 @@ instance : HSub Pitch Pitch (outParam Interval) where
   hSub p1 p2 :=
     let Δname := nameDistance p1.name p2.name
     let Δacc := p1.acc - p2.acc
-    { name := Δname, semitones := Δname + Δacc.semitones }
+    { name := p1.name - p2.name, semitones := Δname + Δacc.semitones }
 /-- Group action of interval group on the set of pitches -/
 instance : HAdd Pitch Interval Pitch where
   hAdd p i :=
     let name := p.name + i.name
-    -- Semitones accounted for in the name
-    let Δsemitones := nameDistance p.name name
+    -- Semitones accounted for in the name with no accidentals
+    let Δsemitones := nameDistance name p.name
     { name, acc := { semitones := i.semitones - Δsemitones} }
 
 /-- 7-tone diatonic scale -/
@@ -229,3 +238,4 @@ instance equalTempTuning root modus : Tuning Pitch EqualTemp.Pitch (src := (diat
 example : (Pitch.new .c 4) + Interval.octave = (Pitch.new .c 5) := rfl
 example : (Pitch.new .c 4) + Interval.p5 = (Pitch.new .g 4) := rfl
 example : (Pitch.new .b 5) + Interval.p5 = (Pitch.new .f 6 .sharp) := rfl
+example : (Pitch.new .e 3) - (Pitch.new .c 3) = Interval.ma3 := rfl
