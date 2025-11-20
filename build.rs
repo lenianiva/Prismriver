@@ -1,7 +1,6 @@
 use std::{env, path::PathBuf, process::Command};
 
-fn main() -> Result<(), Box<dyn std::error::Error>>
-{
+fn main() -> Result<(), Box<dyn std::error::Error>> {
 	let lean_root = if let Ok(lean_root) = env::var("LEAN_ROOT") {
 		lean_root
 	} else if let Ok(output) = Command::new("lean").arg("--print-prefix").output() {
@@ -13,7 +12,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>>
 	let input = format!("{lean_root}/include/lean/lean.h");
 
 	println!("cargo:rustc-link-search={lean_root}/lib/lean");
-
+	println!("cargo:rustc-link-lib=leanshared");
 	// Generate headers
 
 	let bindgen_dir = env::temp_dir().join("bindgen");
