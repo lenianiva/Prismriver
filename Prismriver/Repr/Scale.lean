@@ -12,43 +12,34 @@ class PseudoScale (P : Type) where
 represented by the same class. For example, a tuning system could be represented
 as a scale with raw frequencies, and any abstract scale could be lifted into the
 raw frequency scale. This would represent tuning. -/
-class PseudoScaleLift (P₁ P₂ : Type) (src : PseudoScale P₁) (dst : PseudoScale P₂) where
+class Tuning (P₁ P₂ : Type) (src : PseudoScale P₁) (dst : PseudoScale P₂) where
   liftPitch : P₁ → P₂
-
-/-- In most scales, a pitch would be a tone (e.g. C♯) along with a multiple of
-the fundamental interval, which is often an octave. -/
-structure Pitch (T : Type) where
-  tone : T
-  -- Offset in terms of the fundamental interval
-  n : Int
 
 /-- A scale with a repeating fundamental interval. Each pitch in the scale is
 represented as a tone along with a multiple of the fundamental interval. -/
-class Scale (T : Type) extends PseudoScale (Pitch T) where
+class Scale (P I : Type) [HAdd P I P] extends PseudoScale P where
   isFinite := false
-  /-- List all notes in the n₀th interval (usually an octave) -/
-  tones : List T
-
-class ScaleLift (T₁ T₂ : Type) (src : Scale T₁) (dst : Scale T₂)
-  extends PseudoScaleLift (Pitch T₁) (Pitch T₂) src.toPseudoScale dst.toPseudoScale where
-
-class ToneLift (T₁ T₂ : Type) (src : Scale T₁) (dst : Scale T₂)
-  extends ScaleLift T₁ T₂ src dst where
-  liftTone : T₁ → T₂
-  liftPitch p := { p with tone := liftTone p.tone }
+  /-- The fundamental interval (usually an octave) -/
+  fundamental : I
+  /-- List all notes in the 0th interval. e.g. For C major, this would be C,D,E,F,G,A,B -/
+  pitches : List P
 
 namespace EqualTemp
 
-abbrev Tone (n : Nat) := Fin n
+abbrev Pitch := Int
+abbrev Interval := Int
 
-instance scale (n : Nat) : Scale (Tone n) where
+instance scale (n : Nat) : Scale Pitch Interval where
   name := s!"{n}-ET"
-  tones := List.finRange n
+  fundamental := n
+  pitches := List.finRange n |>.map (·.toNat)
 
-theorem et_notes (n : Nat) : (scale n).tones.length = n :=
-  List.length_finRange
+theorem n_et_notes (n : Nat) : (scale n).pitches.length = n := by
+  unfold Scale.pitches
+  unfold scale
+  rewrite [List.length_map]
+  apply List.length_finRange
 
 abbrev et12 := scale 12
-abbrev Tone12 := Tone 12
 
 end EqualTemp
