@@ -3,6 +3,10 @@ import Prismriver.Repr.Time
 
 namespace Prismriver
 
-structure Note { P I : Type } [HAdd P I P] [Scale P I] where
+variable [HAdd P I P] [Scale P I]
+variable [Add D] [HAdd T D T] [HSub T T D] [SMul Int D] [SMul D I]
+
+structure Note where
   pitch : P
-  duration : Duration
+  time : T
+  duration : D
