@@ -11,6 +11,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 	let output_path = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR must be present"));
 	let input = format!("{lean_root}/include/lean/lean.h");
 
+	println!("cargo::rerun-if-changed={lean_root}");
 	println!("cargo:rustc-link-search={lean_root}/lib/lean");
 	println!("cargo:rustc-link-lib=leanshared");
 	// Generate headers
