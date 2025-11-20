@@ -1,5 +1,5 @@
 import Prismriver.Repr.Scale
-import Prismriver.Repr.Duration
+import Prismriver.Repr.Time
 
 namespace Prismriver
 
