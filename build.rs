@@ -12,7 +12,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 	let input = format!("{lean_root}/include/lean/lean.h");
 
 	println!("cargo:rustc-link-search={lean_root}/lib/lean");
-
+	println!("cargo:rustc-link-lib=leanshared");
 	// Generate headers
 
 	let bindgen_dir = env::temp_dir().join("bindgen");
