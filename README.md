@@ -33,3 +33,7 @@ export DYLD_LIBRARY_PATH=$LEAN_ROOT/lib/lean
 
 These variables are automatically set by the Lean build script, and are
 therefore unnecessary for developing the Lean part.
+
+## Contributors 
+(Leni Aniva)[https://leni.sh]
+(Claire Wang)[https://clairewang.net]
