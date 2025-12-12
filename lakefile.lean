@@ -1,9 +1,6 @@
 import Lake
 open Lake DSL
 
-require mathlib4 from git
-  "https://github.com/leanprover-community/mathlib4.git" @ "v4.25.1"
-
 package Prismriver
 
 lean_exe prismriver where

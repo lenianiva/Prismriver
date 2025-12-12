@@ -67,17 +67,4 @@ def isFirstSpecies
 def myCantus := [Pitch.new .c 4, Pitch.new .d 4, Pitch.new .e 4 .flat, Pitch.new .c 4]
 def myCounterpoint := formCounterpoint myCantus ((-1) • Interval.p5)
 
-theorem myCounterpoint_valid :
-    isFirstSpecies myCantus myCounterpoint
-      (heq : myCantus.length = myCounterpoint.length)
-      (h : myCantus.length ≠ 0)
-    :=
-    have part1 := intros
-    have part2 := sorry
-    have part3 := sorry
-    have beginAllowed := sorry
-    have endAllowed := sorry
-    sorry
-
-
 end Prismriver.Composition
