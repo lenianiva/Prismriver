@@ -248,3 +248,9 @@ abbrev Note := Prismriver.Note Pitch Rat Rat
   let _ := time.toToString
   let n := ({ pitch := Pitch.new .c 4, time := mkRat 7 2, duration := mkRat 1 4 } : Note)
   s!"{n}"
+
+structure Bar where
+  noteValues : List Note
+  timeTop: Nat
+  timeBot : Nat
+  deriving Inhabited
