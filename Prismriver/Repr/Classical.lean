@@ -241,8 +241,10 @@ example : (Pitch.new .c 4) + Interval.p5 = (Pitch.new .g 4) := rfl
 example : (Pitch.new .b 5) + Interval.p5 = (Pitch.new .f 6 .sharp) := rfl
 example : (Pitch.new .e 3) - (Pitch.new .c 3) = Interval.ma3 := rfl
 
+abbrev Note := Prismriver.Note Pitch Rat Rat
+
 #eval
   let time := timeSignature 4 4
   let _ := time.toToString
-  let n := ({ pitch := Pitch.new .c 4, time := mkRat 7 2, duration := mkRat 1 4 } : Note Pitch Rat Rat)
+  let n := ({ pitch := Pitch.new .c 4, time := mkRat 7 2, duration := mkRat 1 4 } : Note)
   s!"{n}"

@@ -17,7 +17,6 @@ def formCounterpoint (notes : List Pitch) (initial : Interval) : List Pitch :=
   let result := formCounterpointAux notes initial []
   result.reverse
 
-
 #eval formCounterpoint [ (.new .c 4), (.new .d 4), (.new .e 4 .flat), (.new .c 4) ] ((-1) • Interval.p5)
 
 def allowedIntervalMovement (i : Interval) : Prop :=
@@ -64,6 +63,21 @@ def isFirstSpecies
     endInterval interval
 
   part1 ∧ part2 ∧ part3 ∧ beginAllowed ∧ endAllowed
+
+def myCantus := [Pitch.new .c 4, Pitch.new .d 4, Pitch.new .e 4 .flat, Pitch.new .c 4]
+def myCounterpoint := formCounterpoint myCantus ((-1) • Interval.p5)
+
+theorem myCounterpoint_valid :
+    isFirstSpecies myCantus myCounterpoint
+      (heq : myCantus.length = myCounterpoint.length)
+      (h : myCantus.length ≠ 0)
+    :=
+    have part1 := intros
+    have part2 := sorry
+    have part3 := sorry
+    have beginAllowed := sorry
+    have endAllowed := sorry
+    sorry
 
 
 end Prismriver.Composition
