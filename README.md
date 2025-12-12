@@ -2,17 +2,24 @@
 
 A Music representation library and DSL in Lean 4
 
-## Roadmap
+## Example
 
-See [roadmap](doc/roadmap.typ) (need to be compiled with Typst).
+This command plays the first 5 notes of Necrofantasia
+
+```lean
+import Prismriver
+#play ["e4", "> c4", "b4", "< d4", "e4~4"]
+```
 
 ## Building
 
-Install Rust and Lean. Build the library with
+Install and Lean. Build the library with
 
 ``` sh
 lake build
 ```
+
+To play MIDI, install `alda`.
 
 ## Contributing
 
@@ -23,13 +30,10 @@ and run
 pre-commit install --install-hooks
 ```
 
-Building the Rust part of this library requires setting some environment
-variables. Create a `.envrc` file for convenience:
+See [roadmap](doc/roadmap.typ) (need to be compiled with Typst).
 
-``` sh
-export LEAN_ROOT=$(lake env printenv LEAN_SYSROOT)
-export DYLD_LIBRARY_PATH=$LEAN_ROOT/lib/lean
-```
+## Contributors
 
-These variables are automatically set by the Lean build script, and are
-therefore unnecessary for developing the Lean part.
+[Leni Aniva](https://leni.sh)
+
+[Claire Wang](https://clairewang.net)
