@@ -15,8 +15,13 @@ def play (aldaCode : String) : IO UInt32 := do
   hLock.unlock
   return ret
 
-elab "#play" : command => do
-  let notes := ["e4", "> c4", "b4", "< d4", "e4~4"]
+elab "#play" t:term : command => do
+  let notes ← Elab.Command.liftTermElabM do
+    let type ← Elab.Term.elabType (← `(term|List String))
+    let li ← Elab.Term.elabTerm t .none
+    let notes ← unsafe do
+      Meta.evalExpr (List String) type li
+    return notes
   let notes := " ".intercalate notes
   let code := s!"piano: {notes}"
 
