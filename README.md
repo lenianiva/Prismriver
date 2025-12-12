@@ -31,3 +31,9 @@ pre-commit install --install-hooks
 ```
 
 See [roadmap](doc/roadmap.typ) (need to be compiled with Typst).
+
+## Contributors
+
+[Leni Aniva](https://leni.sh)
+
+[Claire Wang](https://clairewang.net)
