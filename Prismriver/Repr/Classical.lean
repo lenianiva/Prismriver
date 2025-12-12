@@ -117,11 +117,49 @@ protected def Pitch.octave (p : Pitch) : Int :=
 instance : ToString Pitch where
   toString t := s!"{t.tone}{t.octave}"
 
+namespace Pitch
+
+protected def c4 : Pitch := ⟨7 * 4, .natural⟩
+
+end Pitch
+
 /-- An interval consists of a letter distance and a semitone distance -/
 structure Interval where
   name : Int
   semitones : Int
   deriving BEq, Inhabited
+
+private def nameDistanceAux (total : Nat) (key : Hep) : Nat → Nat
+  | 0 => total
+  | remainder+1 =>
+    let key' : Fin 7 := key
+    let total' := total + spaces[key']
+    nameDistanceAux total' (key' + (1 : Fin 7)) remainder
+
+/-- Calculates the semitone distance of `n2 - n1` two pitches with no accidentals -/
+def nameDistance (n2 n1 : Int) : Int :=
+  if n1 ≤ n2 then
+    let fin : Fin 7 := Fin.intCast n1
+    nameDistanceAux 0 fin (Int.toNat (n2 - n1))
+  else
+    let fin : Fin 7 := Fin.intCast n2
+    let d : Int := nameDistanceAux 0 fin (Int.toNat (n1 - n2))
+    (-d : Int)
+
+instance : HSub Pitch Pitch (outParam Interval) where
+  hSub p1 p2 :=
+    let Δname := nameDistance p1.name p2.name
+    let Δacc := p1.acc - p2.acc
+    { name := p1.name - p2.name, semitones := Δname + Δacc.semitones }
+/-- Group action of interval group on the set of pitches -/
+instance : HAdd Pitch Interval Pitch where
+  hAdd p i :=
+    let name := p.name + i.name
+    -- Semitones accounted for in the name with no accidentals
+    let Δsemitones := nameDistance name p.name
+    { name, acc := { semitones := i.semitones - Δsemitones} }
+instance : Neg Interval where
+  neg i := { name := -i.name, semitones := -i.semitones }
 
 namespace Interval
 
@@ -182,37 +220,14 @@ example : (toString p4) = "P4" := rfl
 example : (toString p5) = "P5" := rfl
 example : toString (p5 + Accidental.sharp) = "P5♯" := rfl
 
+def majorTriad (p : Pitch) : List Pitch := [
+    p, p + ma3, p + p5
+  ]
+def minorTriad (p : Pitch) : List Pitch := [
+    p, p + mi3, p + p5
+  ]
+
 end Interval
-
-private def nameDistanceAux (total : Nat) (key : Hep) : Nat → Nat
-  | 0 => total
-  | remainder+1 =>
-    let key' : Fin 7 := key
-    let total' := total + spaces[key']
-    nameDistanceAux total' (key' + (1 : Fin 7)) remainder
-
-/-- Calculates the semitone distance of `n2 - n1` two pitches with no accidentals -/
-def nameDistance (n2 n1 : Int) : Int :=
-  if n1 ≤ n2 then
-    let fin : Fin 7 := Fin.intCast n1
-    nameDistanceAux 0 fin (Int.toNat (n2 - n1))
-  else
-    let fin : Fin 7 := Fin.intCast n2
-    let d : Int := nameDistanceAux 0 fin (Int.toNat (n1 - n2))
-    (-d : Int)
-
-instance : HSub Pitch Pitch (outParam Interval) where
-  hSub p1 p2 :=
-    let Δname := nameDistance p1.name p2.name
-    let Δacc := p1.acc - p2.acc
-    { name := p1.name - p2.name, semitones := Δname + Δacc.semitones }
-/-- Group action of interval group on the set of pitches -/
-instance : HAdd Pitch Interval Pitch where
-  hAdd p i :=
-    let name := p.name + i.name
-    -- Semitones accounted for in the name with no accidentals
-    let Δsemitones := nameDistance name p.name
-    { name, acc := { semitones := i.semitones - Δsemitones} }
 
 /-- 7-tone diatonic scale -/
 instance diatonic (root : Tone) (modus : Hep) : Scale Pitch Interval where
@@ -242,12 +257,6 @@ example : (Pitch.new .b 5) + Interval.p5 = (Pitch.new .f 6 .sharp) := rfl
 example : (Pitch.new .e 3) - (Pitch.new .c 3) = Interval.ma3 := rfl
 
 abbrev Note := Prismriver.Note Pitch Rat Rat
-
-#eval
-  let time := timeSignature 4 4
-  let _ := time.toToString
-  let n := ({ pitch := Pitch.new .c 4, time := mkRat 7 2, duration := mkRat 1 4 } : Note)
-  s!"{n}"
 
 structure Bar where
   noteValues : List Note
