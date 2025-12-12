@@ -1,7 +1,8 @@
 namespace Prismriver
 
-class Time (I D : Type) extends Add D, HAdd I D I, HSub I I D, SMul Int D, ToString I where
+class Time (I D : Type) extends Add D, HAdd I D I, Neg D, SMul Int D where
   zero : D
+  /- Maximum time within a bar -/
   bar : D := zero
 
 instance : Time Int Int where
@@ -10,15 +11,15 @@ instance : Time Int Int where
 instance : Time Rat Rat where
   zero := 0
 
+structure MeasuredTime where
+  bar : Int
+  offset : Rat
+
+instance : ToString MeasuredTime where
+  toString i := s!"{i.bar}.{i.offset}"
+
 instance timeSignature (top bot : Nat)
-  : Time Rat Rat where
+  : Time MeasuredTime Rat where
   zero := 0
   bar := mkRat top bot
-  toString i :=
-    let bar := mkRat top bot
-    let barN := (i / bar).floor
-    let offset := i - barN * bar
-    if barN == 0 then
-      s!"{offset}"
-    else
-      s!"{barN}.{offset}"
+  hAdd t d := { t with offset := t.offset + d }
