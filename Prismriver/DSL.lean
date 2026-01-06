@@ -6,9 +6,17 @@ namespace Prismriver
 
 declare_syntax_cat music
 syntax (name := note) ident : music
-syntax note,* : music
+syntax "{" music* "}" : music
 
 syntax (name := music) "♩[" music "]" : term
+
+@[macro music] def musicUnfold : Macro
+  | `(music|d) => `(term|c)
+  | `(music|$x:ident) => `(term|$x)
+  | `(music|{ $x:music* }) => do
+    let x ← x.mapM λ y => `(♩[$y])
+    `(term|[$x,*])
+  | _ => Macro.throwUnsupported
 
 def elabNote (stx : TSyntax `music) : Elab.Term.TermElabM Expr := do
   logInfo s!"{stx}"
