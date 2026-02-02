@@ -1,6 +1,8 @@
 import Prismriver.Repr.Scale
 import Prismriver.Repr.Note
 
+import Lean.ToExpr
+
 namespace Prismriver.Classical
 
 /-- Accidental measured in terms of the number of semitones from natural. -/
@@ -8,12 +10,12 @@ structure Accidental where
   semitones : Int := 0
   deriving BEq, Inhabited
 
-namespace Accidental
-
-protected def natural : Accidental := ⟨0⟩
-protected def sharp : Accidental := ⟨1⟩
-protected def flat : Accidental := ⟨-1⟩
-
+open Lean in
+instance : ToExpr Accidental where
+  toExpr a :=
+    let semitones := toExpr a.semitones
+    mkAppN (mkConst ``Accidental.mk) #[semitones]
+  toTypeExpr : Expr := mkConst ``Accidental
 instance : ToString Accidental where
   toString a :=
     if a.semitones == 0 then
@@ -23,6 +25,12 @@ instance : ToString Accidental where
       let one := if sign then "♯" else "♭"
       let n := Int.natAbs a.semitones
       String.join (List.replicate n one)
+
+namespace Accidental
+
+protected def natural : Accidental := ⟨0⟩
+protected def sharp : Accidental := ⟨1⟩
+protected def flat : Accidental := ⟨-1⟩
 
 protected def toSuffix : Accidental → String
   | ⟨0⟩ => ""
@@ -116,6 +124,14 @@ protected def Pitch.octave (p : Pitch) : Int :=
 
 instance : ToString Pitch where
   toString t := s!"{t.tone}{t.octave}"
+
+open Lean in
+instance : ToExpr Pitch where
+  toExpr p :=
+    let name := toExpr p.name
+    let acc := toExpr p.acc
+    mkAppN (mkConst ``Pitch.mk) #[name, acc]
+  toTypeExpr : Expr := mkConst ``Pitch
 
 namespace Pitch
 
