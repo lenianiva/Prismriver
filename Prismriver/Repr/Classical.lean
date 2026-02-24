@@ -279,3 +279,6 @@ structure Bar [S : Time MeasuredTime Rat] where
   timeTop: Nat
   timeBot : Nat
   deriving Inhabited
+
+def time22 := timeSignature 2 2
+def time44 := timeSignature 4 4

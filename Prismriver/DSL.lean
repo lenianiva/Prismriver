@@ -28,7 +28,7 @@ def parseNote (z : Ident) (octaveDown : Nat := 0) (duration : Nat := 0)
   : Elab.Term.TermElabM Expr := do
   let id := z.getId
   let (pitch, octaveUp, duration') := divideNote id.toString
-  let duration := duration + (duration'.toNat?.getD 0)
+  let duration : Rat := duration + (duration'.toNat?.getD 0)
   --let duration := chs.drop 1 |>.dropRightWhile (!·.isDigit) |>.toNat?.getD 4
   let .some (hep, acc) := parsePitch pitch
     | Elab.throwUnsupportedSyntax
@@ -42,7 +42,11 @@ def parseNote (z : Ident) (octaveDown : Nat := 0) (duration : Nat := 0)
     | .error n => n
   let octave := (octaveUp : Int) - (octaveDown : Int)
   let pitch := Pitch.new hep octave acc
-  return Lean.toExpr pitch
+  let time : MeasuredTime := ⟨0, 0⟩
+  let note ←
+    Meta.withLocalInstances ((← getLCtx).decls.toList.filterMap (λ x => x)) do
+    Meta.mkAppM ``Note.mk #[toExpr pitch, toExpr time, toExpr duration]
+  return note
   where
   /-- Divide note into pitch, octaveUp, duration markers -/
   divideNote (n : String) : (Substring × Substring × Substring) :=
@@ -73,7 +77,7 @@ def parseNote (z : Ident) (octaveDown : Nat := 0) (duration : Nat := 0)
       | _ => .none
     return ⟨n⟩
 
-partial def elabMusic (type : Expr) (stx : TSyntax `music) : Elab.Term.TermElabM Expr := do
+partial def elabMusic (noteType : Expr) (stx : TSyntax `music) : Elab.Term.TermElabM Expr := do
   match stx with
   | `(music|$key:ident) => do
     parseNote key
@@ -81,22 +85,30 @@ partial def elabMusic (type : Expr) (stx : TSyntax `music) : Elab.Term.TermElabM
     let duration := o?.map (·.getNat) |>.getD 0
     parseNote key (octaveDown := occ.size) (duration := duration)
   | `(music|{ $xs:music* }) =>
-    let notes ← xs.mapM (elabMusic type)
+    let notes ← xs.mapM (elabMusic noteType)
+    for note in notes do
+      let noteT ← Meta.inferType note
+      unless ← Meta.isDefEq noteT noteType do
+        throwError "Could not unify type: {← Meta.ppExpr noteT} ≠ {← Meta.ppExpr noteType}"
     --let t := Lean.toTypeExpr (@Classical.Note (S := timeSignature 4 4))
-    Meta.mkListLit type notes.toList
+    Meta.mkListLit noteType notes.toList
   | _ =>
     Elab.throwUnsupportedSyntax
 
 @[term_elab music]
 def musicImpl : Elab.Term.TermElab := λ stx type? => do
   let .some type := type? | Elab.throwPostpone
-  let .some type := type.app1? `List | Elab.throwUnsupportedSyntax
+  let .some typeElem := type.app1? `List | Elab.throwUnsupportedSyntax
   match stx with
   | `(♩[$z:music]) =>
-    elabMusic type z
+    let expr ← elabMusic typeElem z
+    let exprT ← Meta.inferType expr
+    unless ← Meta.isDefEq exprT type do
+      throwError "Could not unify type: {← Meta.ppExpr exprT} ≠ {← Meta.ppExpr type}"
+    return expr
   | _ =>
     Elab.throwUnsupportedSyntax
 
-#eval (♩[ { c5 d e f }] : List Pitch)
-#eval (♩[ { c'' d e f5 }] : List Pitch)
-#eval (♩[ { c,,,, d e f5 }] : List Pitch)
+#eval (♩[ { c5 d e f }] : List (@Classical.Note time44))
+#eval (♩[ { c'' d e f5 }] : List (@Classical.Note time44))
+#eval (♩[ { c,,,, d e f5 }] : List (@Classical.Note time44))
