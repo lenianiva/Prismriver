@@ -1,3 +1,4 @@
+import Prismriver.DSL
 import Lean.Elab
 
 open Lean
@@ -10,7 +11,7 @@ def play (aldaCode : String) : IO UInt32 := do
   let flag ← hLock.tryLock
   if !flag then
     return 0
-  let ch ← IO.Process.spawn { cmd := "alda", args := #["play", "--code", aldaCode] }
+  let ch ← IO.Process.spawn { cmd := "alda", args := #["play", "--wait", "--code", aldaCode] }
   let ret ← ch.wait
   hLock.unlock
   return ret
@@ -29,3 +30,5 @@ elab "#play" t:term : command => do
   let ret ← play code
   if ret ≠ 0 then
     logError s!"Subprocess failed: {ret}"
+
+--#play ["e4", "> c4", "b4", "< d4", "e4~4"]
