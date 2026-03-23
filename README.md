@@ -1,25 +1,23 @@
 # Prismriver
 
-A Music representation library and DSL in Lean 4
+A Music formalizatzion library and DSL in Lean 4 for:
 
-## Example
+1. Formalization of music theory including pitches, accidentals, scales, chords, durations, parts
+2. Algorithmic analysis (e.g. key estimation) and composition (counterpoint)
+3. Mathematical modeling of music
+4. Lilypond compatible music syntax
+
+## Playback
+
+Prismriver supports playback using [Alda](https://alda.io/). Alda is optional,
+but it is necessary for playing music.
 
 This command plays the first 5 notes of Necrofantasia
 
 ```lean
 import Prismriver
-#play ["e4", "> c4", "b4", "< d4", "e4~4"]
+#play ♩[e4 c'4 b4 d4 e2]
 ```
-
-## Building
-
-Install and Lean. Build the library with
-
-``` sh
-lake build
-```
-
-To play MIDI, install `alda`.
 
 ## Contributing
 
@@ -34,6 +32,5 @@ See [roadmap](doc/roadmap.typ) (need to be compiled with Typst).
 
 ## Contributors
 
-[Leni Aniva](https://leni.sh)
-
-[Claire Wang](https://clairewang.net)
+- [Leni Aniva](https://leni.sh)
+- [Claire Wang](https://clairewang.net)
