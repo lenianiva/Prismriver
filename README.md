@@ -23,11 +23,11 @@ To play MIDI, install `alda`.
 
 ## Contributing
 
-Every commit must be filtered through pre-commit hooks. Install `pre-commit`,
+Every commit must be filtered through pre-commit hooks. Install `prek`,
 and run
 
 ``` sh
-pre-commit install --install-hooks
+prek install
 ```
 
 See [roadmap](doc/roadmap.typ) (need to be compiled with Typst).
