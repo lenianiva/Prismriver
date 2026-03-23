@@ -160,11 +160,11 @@ elab "#play" e:term : command => do
 
   let notes := " ".intercalate $ notes.map λ note =>
     s!"o{note.pitch.octave + 4} {note.pitch.hep}"
-  let code := s!"piano: {notes}"
+  let code := s!"{notes}"
 
-  logInfo s!"piano: {code}"
+  logInfo s!"{code}"
   let ret ← play code
   if ret ≠ 0 then
-    logError s!"Subprocess failed: {ret}"
+    throwError s!"Subprocess failed: {ret}"
 
 --#play ♩[e4 c'4 b4 d4 e2]
