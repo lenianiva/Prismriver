@@ -13,6 +13,15 @@ instance : Time Int Int where
 instance : Time Rat Rat where
   zero := 0
 
+instance : Ord Rat where
+  compare r1 r2 :=
+    if r1 = r2 then
+      .eq
+    else if r1 < r2 then
+      .lt
+    else
+      .gt
+
 open Lean in
 instance : ToExpr Rat where
   toExpr t :=
@@ -24,6 +33,9 @@ instance : ToExpr Rat where
 structure MeasuredTime where
   bar : Int
   offset : Rat
+  deriving Ord
+instance : LT MeasuredTime := ltOfOrd
+instance : LE MeasuredTime := leOfOrd
 
 instance : ToString MeasuredTime where
   toString i := s!"{i.bar}.{i.offset}"

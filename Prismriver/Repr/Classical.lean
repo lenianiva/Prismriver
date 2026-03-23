@@ -8,7 +8,10 @@ namespace Prismriver.Classical
 /-- Accidental measured in terms of the number of semitones from natural. -/
 structure Accidental where
   semitones : Int := 0
-  deriving BEq, Inhabited
+  deriving BEq, Inhabited, Ord
+
+instance : LT Accidental := ltOfOrd
+instance : LE Accidental := leOfOrd
 
 open Lean in
 instance : ToExpr Accidental where
@@ -110,7 +113,10 @@ instance : ToString Tone where
 structure Pitch where
   name : Int
   acc : Accidental := .natural
-  deriving BEq, Inhabited
+  deriving BEq, Inhabited, Ord
+
+instance : LT Pitch := ltOfOrd
+instance : LE Pitch := leOfOrd
 
 protected def Pitch.new (hep : Hep) (octave : Int) (acc : Accidental := .natural) : Pitch :=
   { name := hep.toNat + octave * 7, acc }
@@ -136,6 +142,8 @@ instance : ToExpr Pitch where
 namespace Pitch
 
 protected def c4 : Pitch := ⟨7 * 4, .natural⟩
+
+example : Pitch.c4 < (⟨7 * 4, .sharp⟩ : Pitch) := by decide
 
 end Pitch
 
