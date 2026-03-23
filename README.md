@@ -30,14 +30,16 @@ pitches. This also recalls properties of affine spaces.
 Whether an interval is consonant or dissonant is dependent on the physical
 properties of the instrument and this varies across cultures, and hence the
 choice of consonant intervals is left as free parameters in composition
-algorithms.
+algorithms. We still provide convenient shortcuts such as `p5` or `ma6` for
+intervals.
 
 ### Time
 
 We handle time, the other axis of music, in
 [Time.lean](Prismriver/Repr/Time.lean). To allow arbitrary musical sequences,
 the most general form of time only consists of an instance type `I` and a
-duration type `D`.
+duration type `D`. `MeasuredTime` is a representation based on bars and rational
+offsets.
 
 ### Algorithmic Composition
 
@@ -46,7 +48,7 @@ Implemented in [Composition](Prismriver/Composition). We implemented
 
 ### Syntax and Playback
 
-A [Lilypond](https://lilypond.org/)-like DSL is provided in
+A [LilyPond](https://lilypond.org/)-like DSL is provided in
 [Syntax.lean](Prismriver/Syntax.lean).
 
 Prismriver supports playback using [Alda](https://alda.io/). Alda is optional,
@@ -61,8 +63,8 @@ import Prismriver
 
 ## Contributing
 
-Every commit must be filtered through pre-commit hooks. Install `prek`,
-and run
+Every commit must pass through pre-commit hooks. Install `prek` (provided in
+[`shell.nix`](shell.nix)), and run
 
 ``` sh
 prek install
