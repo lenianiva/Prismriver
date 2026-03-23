@@ -1,114 +1,140 @@
 import Prismriver.Repr.Classical
 import Lean.Elab
 
-namespace Prismriver
+namespace Prismriver.Syntax
 
 open Lean Prismriver.Classical
 
-declare_syntax_cat mystery
-syntax (name := mystery1) ident ","* : mystery
+declare_syntax_cat music_note
 
-declare_syntax_cat music
-syntax (name := note) ident : music
-syntax (name := note1) ident ","* optional(num) : music
-syntax "{" music* "}" : music
+abbrev hepKind : SyntaxNodeKind := `hep
+def hepFn : Parser.ParserFn :=
+  Parser.nodeFn hepKind <|
+  Parser.rawFn (trailingWs := true) fun ctx s =>
+    let slice := ctx.substring s.pos ctx.endPos
+    let slice' := slice.dropWhile ("abcdefg".contains ·)
+    if slice == slice' then
+      s.mkErrorsAt [""] s.pos
+    else
+      s.setPos slice'.startPos
 
-syntax (name := music) "♩[" music "]" : term
+def hepNoAntiquot : Parser.Parser where
+  fn := hepFn
 
-@[macro music] def musicUnfold : Macro
-  | `(music|d) => `(term|c)
-  | `(music|$x:ident $[,%$occ]*) => do
-    `(term|$x)
-  | `(music|{ $x:music* }) => do
-    let x ← x.mapM λ y => `(♩[$y])
-    `(term|[$x,*])
-  | _ => Macro.throwUnsupported
+open PrettyPrinter Formatter in
+@[combinator_formatter hepNoAntiquot]
+def hepNoAntiquot.formatter : Formatter :=
+  visitAtom hepKind
 
-def parseNote (z : Ident) (octaveDown : Nat := 0) (duration : Nat := 0)
-  : Elab.Term.TermElabM Expr := do
-  let id := z.getId
-  let (pitch, octaveUp, duration') := divideNote id.toString
-  let duration : Rat := duration + (duration'.toNat?.getD 0)
-  --let duration := chs.drop 1 |>.dropRightWhile (!·.isDigit) |>.toNat?.getD 4
-  let .some (hep, acc) := parsePitch pitch
+open PrettyPrinter Parenthesizer in
+@[combinator_parenthesizer hepNoAntiquot]
+def hepNoAntiquot.parenthesizer : Parenthesizer := visitToken
+
+/-- Parser which eats a hep -/
+def hep := Parser.withAntiquot (Parser.mkAntiquot "hep" hepKind) hepNoAntiquot
+
+def markSharp : List Char := ['s', '♯']
+def markFlat : List Char := ['f', '♭']
+
+abbrev accidentalKind : SyntaxNodeKind := `accidental
+def accidentalFn : Parser.ParserFn :=
+  Parser.nodeFn accidentalKind <|
+  Parser.rawFn (trailingWs := true) fun ctx s =>
+    let slice := ctx.substring s.pos ctx.endPos
+    let slice' := slice.dropWhile (λ ch => markSharp.contains ch || markFlat.contains ch)
+    if slice == slice' then
+      s.mkErrorsAt [""] s.pos
+    else
+      s.setPos slice'.startPos
+def accidentalNoAntiquot : Parser.Parser where
+  fn := accidentalFn
+open PrettyPrinter Formatter in
+@[combinator_formatter accidentalNoAntiquot]
+def accidentalNoAntiquot.formatter : Formatter :=
+  visitAtom accidentalKind
+open PrettyPrinter Parenthesizer in
+@[combinator_parenthesizer accidentalNoAntiquot]
+def accidentalNoAntiquot.parenthesizer : Parenthesizer := visitToken
+def accidental := Parser.withAntiquot (Parser.mkAntiquot "accidental" accidentalKind) accidentalNoAntiquot
+
+def markOctaveUp : Char := '\''
+def markOctaveDown : Char := ','
+
+abbrev octaveKind : SyntaxNodeKind := `octave
+def octaveFn : Parser.ParserFn :=
+  Parser.nodeFn octaveKind <|
+  Parser.rawFn (trailingWs := true) fun ctx s =>
+    let slice := ctx.substring s.pos ctx.endPos
+    let slice' := slice.dropWhile (λ ch => ch == markOctaveUp || ch == markOctaveDown)
+    if slice == slice' then
+      s.mkErrorsAt [""] s.pos
+    else
+      s.setPos slice'.startPos
+def octaveNoAntiquot : Parser.Parser where
+  fn := octaveFn
+open PrettyPrinter Formatter in
+@[combinator_formatter octaveNoAntiquot]
+def octaveNoAntiquot.formatter : Formatter :=
+  visitAtom octaveKind
+open PrettyPrinter Parenthesizer in
+@[combinator_parenthesizer octaveNoAntiquot]
+def octaveNoAntiquot.parenthesizer : Parenthesizer := visitToken
+def octave := Parser.withAntiquot (Parser.mkAntiquot "octave" octaveKind) octaveNoAntiquot
+
+-- A music note is a pitch plus an optional duration
+syntax hep optional(noWs accidental) optional(noWs octave) optional(num) : music_note
+
+declare_syntax_cat music_seq
+syntax music_note* : music_seq
+
+def elabNote (stx : TSyntax `music_note) : Elab.Term.TermElabM Expr := do
+  let `(music_note| $h:hep$[$acc?:accidental]?$[$oct?:octave]?$[$d:num]?) := stx
     | Elab.throwUnsupportedSyntax
-  let octaveUp : Except Nat Nat := octaveUp.foldr (init := .ok 0) λ ch acc =>
-    match (acc, ch) with
-    | (.ok n , '\'') => .ok (n + 1)
-    | (.ok n, _) => .error n
-    | (e, _) => e
-  let octaveUp := match octaveUp with
-    | .ok n => n
-    | .error n => n
-  let octave := (octaveUp : Int) - (octaveDown : Int)
-  let pitch := Pitch.new hep octave acc
+  let h := (h.raw.isLit? hepKind).getD "c"
+  let acc := acc?.bind (·.raw.isLit? accidentalKind) |>.getD ""
+  let oct := oct?.bind (·.raw.isLit? octaveKind) |>.getD ""
+  let d : Rat := mkRat 1 (d.map (·.getNat) |>.getD 4)
+  let .some pitch := parsePitch h acc oct
+    | Elab.throwUnsupportedSyntax
   let time : MeasuredTime := ⟨0, 0⟩
   let note ←
     Meta.withLocalInstances ((← getLCtx).decls.toList.filterMap (λ x => x)) do
-    Meta.mkAppM ``Note.mk #[toExpr pitch, toExpr time, toExpr duration]
+    Meta.mkAppM ``Note.mk #[toExpr pitch, toExpr time, toExpr d]
   return note
   where
-  /-- Divide note into pitch, octaveUp, duration markers -/
-  divideNote (n : String) : (Substring × Substring × Substring) :=
-    let i := n.find (· = '\'')
-    let j := n.find (·.isDigit)
-    let pitch := Substring.mk n ⟨0⟩ (i.min j)
-    let octaveUp := Substring.mk n i j
-    let duration := Substring.mk n j n.endPos
-    (pitch, octaveUp, duration)
-  parsePitch (p : Substring) : Option (Hep × Accidental) := do
-    let hep ← match p.front with
-      | 'c' => pure Hep.c
-      | 'd' => pure Hep.d
-      | 'e' => pure Hep.e
-      | 'f' => pure Hep.f
-      | 'g' => pure Hep.g
-      | 'a' => pure Hep.a
-      | 'b' => pure Hep.b
+  parsePitch (p acc oct : String) : Option Pitch := do
+    let hep ← match p with
+      | "c" => pure Hep.c
+      | "d" => pure Hep.d
+      | "e" => pure Hep.e
+      | "f" => pure Hep.f
+      | "g" => pure Hep.g
+      | "a" => pure Hep.a
+      | "b" => pure Hep.b
       | _ => .none
-    let acc ← parseAcc (p.drop 1)
-    return (hep, acc)
-  parseAcc (a : Substring) : Option Accidental := do
-    let n ← match a.take 1 |>.toString with
-      -- HACK: Not checking if the accidentals are all sharps or flats
-      | "s" => pure (a.bsize : Int)
-      | "f" => pure (-a.bsize : Int)
-      | "" => pure 0
-      | _ => .none
-    return ⟨n⟩
+    let acc : Int := acc.foldl (init := 0)
+        λ acc ch => match ch with
+          | 's' => acc + 1
+          | 'f' => acc - 1
+          | _ => acc
+    let oct : Int := oct.foldl (init := 0)
+        λ acc ch => match ch with
+          | '\'' => acc + 1
+          | ',' => acc - 1
+          | _ => acc
+    return Pitch.new hep oct ⟨acc⟩
 
-partial def elabMusic (noteType : Expr) (stx : TSyntax `music) : Elab.Term.TermElabM Expr := do
-  match stx with
-  | `(music|$key:ident) => do
-    parseNote key
-  | `(music|$key:ident $[,%$occ]* $(o?)?) => do
-    let duration := o?.map (·.getNat) |>.getD 0
-    parseNote key (octaveDown := occ.size) (duration := duration)
-  | `(music|{ $xs:music* }) =>
-    let notes ← xs.mapM (elabMusic noteType)
-    for note in notes do
-      let noteT ← Meta.inferType note
-      unless ← Meta.isDefEq noteT noteType do
-        throwError "Could not unify type: {← Meta.ppExpr noteT} ≠ {← Meta.ppExpr noteType}"
-    --let t := Lean.toTypeExpr (@Classical.Note (S := timeSignature 4 4))
-    Meta.mkListLit noteType notes.toList
-  | _ =>
-    Elab.throwUnsupportedSyntax
+syntax (name := music) "♩[" music_seq "]" : term
 
-@[term_elab music]
-def musicImpl : Elab.Term.TermElab := λ stx type? => do
-  let .some type := type? | Elab.throwPostpone
-  let .some typeElem := type.app1? `List | Elab.throwUnsupportedSyntax
-  match stx with
-  | `(♩[$z:music]) =>
-    let expr ← elabMusic typeElem z
-    let exprT ← Meta.inferType expr
-    unless ← Meta.isDefEq exprT type do
-      throwError "Could not unify type: {← Meta.ppExpr exprT} ≠ {← Meta.ppExpr type}"
-    return expr
-  | _ =>
-    Elab.throwUnsupportedSyntax
+elab "♩[" seq:music_seq "]" : term <= type => do
+  let `(music_seq| $notes:music_note* ) := seq
+    | Elab.throwUnsupportedSyntax
 
-#eval (♩[ { c5 d e f }] : List (@Classical.Note time44))
-#eval (♩[ { c'' d e f5 }] : List (@Classical.Note time44))
-#eval (♩[ { c,,,, d e f5 }] : List (@Classical.Note time44))
+  let .some noteType := type.app1? `List | Elab.throwUnsupportedSyntax
+
+  let notes ← notes.mapM elabNote
+  Meta.mkListLit noteType notes.toList
+
+#eval (♩[ cs5 d e f ] : List (@Classical.Note time44))
+#eval (♩[ c'' d e f5 ] : List (@Classical.Note time44))
+#eval (♩[ c,,,, d e f5 ] : List (@Classical.Note time44))
