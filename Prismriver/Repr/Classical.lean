@@ -1,6 +1,8 @@
 import Prismriver.Repr.Scale
 import Prismriver.Repr.Note
 
+import Lean.ToExpr
+
 namespace Prismriver.Classical
 
 /-- Accidental measured in terms of the number of semitones from natural. -/
@@ -8,12 +10,12 @@ structure Accidental where
   semitones : Int := 0
   deriving BEq, Inhabited
 
-namespace Accidental
-
-protected def natural : Accidental := ⟨0⟩
-protected def sharp : Accidental := ⟨1⟩
-protected def flat : Accidental := ⟨-1⟩
-
+open Lean in
+instance : ToExpr Accidental where
+  toExpr a :=
+    let semitones := toExpr a.semitones
+    mkAppN (mkConst ``Accidental.mk) #[semitones]
+  toTypeExpr : Expr := mkConst ``Accidental
 instance : ToString Accidental where
   toString a :=
     if a.semitones == 0 then
@@ -23,6 +25,12 @@ instance : ToString Accidental where
       let one := if sign then "♯" else "♭"
       let n := Int.natAbs a.semitones
       String.join (List.replicate n one)
+
+namespace Accidental
+
+protected def natural : Accidental := ⟨0⟩
+protected def sharp : Accidental := ⟨1⟩
+protected def flat : Accidental := ⟨-1⟩
 
 protected def toSuffix : Accidental → String
   | ⟨0⟩ => ""
@@ -116,6 +124,14 @@ protected def Pitch.octave (p : Pitch) : Int :=
 
 instance : ToString Pitch where
   toString t := s!"{t.tone}{t.octave}"
+
+open Lean in
+instance : ToExpr Pitch where
+  toExpr p :=
+    let name := toExpr p.name
+    let acc := toExpr p.acc
+    mkAppN (mkConst ``Pitch.mk) #[name, acc]
+  toTypeExpr : Expr := mkConst ``Pitch
 
 namespace Pitch
 
@@ -256,10 +272,13 @@ example : (Pitch.new .c 4) + Interval.p5 = (Pitch.new .g 4) := rfl
 example : (Pitch.new .b 5) + Interval.p5 = (Pitch.new .f 6 .sharp) := rfl
 example : (Pitch.new .e 3) - (Pitch.new .c 3) = Interval.ma3 := rfl
 
-abbrev Note := Prismriver.Note Pitch Rat Rat
+abbrev Note [S : Time MeasuredTime Rat] := @Prismriver.Note Pitch MeasuredTime Rat S
 
-structure Bar where
+structure Bar [S : Time MeasuredTime Rat] where
   noteValues : List Note
   timeTop: Nat
   timeBot : Nat
   deriving Inhabited
+
+def time22 := timeSignature 2 2
+def time44 := timeSignature 4 4
