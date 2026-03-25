@@ -2,7 +2,7 @@ import Prismriver.Repr.Classical
 
 namespace Prismriver
 
-variable { P I } [HAdd P I P]
+variable (P I) [HAdd P I P]
 
 structure Instrument where
   name : String
