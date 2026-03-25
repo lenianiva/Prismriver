@@ -43,3 +43,5 @@ theorem n_et_notes (n : Nat) : (scale n).pitches.length = n := by
 abbrev et12 := scale 12
 
 end EqualTemp
+
+export EqualTemp (et12)

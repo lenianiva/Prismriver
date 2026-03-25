@@ -39,12 +39,16 @@ We handle time, the other axis of music, in
 [Time.lean](Prismriver/Repr/Time.lean). To allow arbitrary musical sequences,
 the most general form of time only consists of an instance type `I` and a
 duration type `D`. `MeasuredTime` is a representation based on bars and rational
-offsets.
+offsets. This abstraction is out of consideration of flexibility. The time as
+written on paper may not exactly match the time of performance.
 
-### Algorithmic Composition
+### Composition and Analysis
 
-Implemented in [Composition](Prismriver/Composition). We implemented
-[Counterpoint](Prismriver/Composition/Counterpoint.lean) composition.
+[Score](Prismriver/Repr/Score.lean) contains an implementation of music scores.
+Each score is a list of ordered events along time instances.
+
+In [Composition](Prismriver/Composition), we implemented algorithmic composition
+of [counterpoints](Prismriver/Composition/Counterpoint.lean).
 
 ### Syntax and Playback
 
@@ -72,7 +76,12 @@ prek install
 
 See [roadmap](doc/roadmap.typ) (need to be compiled with Typst).
 
-## Contributors
+### Contributors and Acknowledgments
 
 - [Leni Aniva](https://leni.sh)
 - [Claire Wang](https://clairewang.net)
+
+References
+
+- [Lulu](https://github.com/iehality/Lulu)
+- [Music: A Mathematical Offering](https://logosfoundation.org/kursus/music_math.pdf)
