@@ -5,25 +5,21 @@ import Lean.ToExpr
 
 namespace Prismriver
 
-structure Note (P T D : Type) [Time T D] where
+structure Note (P D : Type) where
   pitch : P
-  time : T
   duration : D
   deriving Ord
 
-variable [Time T D]
+instance [Ord P] [Ord D] : LT (Note P D) := ltOfOrd
+instance [Ord P] [Ord D] : LE (Note P D) := leOfOrd
 
-instance [Ord P] [Ord T] [Ord D] : LT (Note P T D) := ltOfOrd
-instance [Ord P] [Ord T] [Ord D] : LE (Note P T D) := leOfOrd
-
-instance [ToString P] [ToString T] [ToString D] : ToString (Note P T D) where
-  toString n := s!"{n.pitch} {n.time} {n.duration}"
+instance [ToString P] [ToString D] : ToString (Note P D) where
+  toString n := s!"{n.pitch}{n.duration}"
 
 open Lean in
-instance [ToExpr P] [ToExpr T] [ToExpr D] : ToExpr (Note P T D) where
+instance [ToExpr P] [ToExpr D] : ToExpr (Note P D) where
   toExpr n :=
     let pitch := toExpr n.pitch
-    let time := toExpr n.time
     let duration := toExpr n.duration
-    mkAppN (mkConst ``Note.mk) #[pitch, time, duration]
+    mkAppN (mkConst ``Note.mk) #[pitch, duration]
   toTypeExpr : Expr := mkConst ``Note

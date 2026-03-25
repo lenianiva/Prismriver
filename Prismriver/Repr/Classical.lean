@@ -280,9 +280,9 @@ example : (Pitch.new .c 4) + Interval.p5 = (Pitch.new .g 4) := rfl
 example : (Pitch.new .b 5) + Interval.p5 = (Pitch.new .f 6 .sharp) := rfl
 example : (Pitch.new .e 3) - (Pitch.new .c 3) = Interval.ma3 := rfl
 
-abbrev Note [S : Time MeasuredTime Rat] := @Prismriver.Note Pitch MeasuredTime Rat S
+abbrev Note := @Prismriver.Note Pitch Rat
 
-structure Bar [S : Time MeasuredTime Rat] where
+structure Bar where
   noteValues : List Note
   timeTop: Nat
   timeBot : Nat

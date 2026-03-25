@@ -96,10 +96,9 @@ def elabNote (stx : TSyntax `music_note) : Elab.Term.TermElabM Expr := do
   let d : Rat := mkRat 1 (d.map (·.getNat) |>.getD 4)
   let .some pitch := parsePitch h acc oct
     | Elab.throwUnsupportedSyntax
-  let time : MeasuredTime := ⟨0, 0⟩
   let note ←
     Meta.withLocalInstances ((← getLCtx).decls.toList.filterMap (λ x => x)) do
-    Meta.mkAppM ``Note.mk #[toExpr pitch, toExpr time, toExpr d]
+    Meta.mkAppM ``Note.mk #[toExpr pitch, toExpr d]
   return note
   where
   parsePitch (p acc oct : String) : Option Pitch := do
@@ -135,9 +134,9 @@ elab "♩[" seq:music_seq "]" : term <= type => do
   let notes ← notes.mapM elabNote
   Meta.mkListLit noteType notes.toList
 
-#eval (♩[ cs5 d e f ] : List (@Classical.Note time44))
-#eval (♩[ c'' d e f5 ] : List (@Classical.Note time44))
-#eval (♩[ c,,,, d e f5 ] : List (@Classical.Note time44))
+#eval (♩[ cs5 d e f ] : List @Classical.Note)
+#eval (♩[ c'' d e f5 ] : List @Classical.Note)
+#eval (♩[ c,,,, d e f5 ] : List @Classical.Note)
 
 def play (aldaCode : String) : IO UInt32 := do
   let lockFile := "/tmp/prismriver-alda.lock"
