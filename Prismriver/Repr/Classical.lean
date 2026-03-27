@@ -264,9 +264,9 @@ instance : HAdd Pitch (KeyInterval root modus) Pitch where
     -- If the modus and root are equal, there should not be any shift since there are no flats or sharps
     let distance := i.name.fmod 7 |>.toNat
     let s1 := p.name.toNat + modus.toNat + 7 - root.toNat
-    let shiftModus : Int := s1.repeat List.rotateLeft spaces
+    let shiftModus : Int := List.rotateLeft spaces s1
       |>.take distance |>.sum
-    let shiftNominal : Int := (p.name.toNat).repeat List.rotateLeft spaces
+    let shiftNominal : Int := List.rotateLeft spaces p.name.toNat
       |>.take distance |>.sum
     let Δsemitones := shiftModus - shiftNominal
     { name, acc := { semitones := p.acc.semitones + Δsemitones } }
@@ -290,6 +290,12 @@ instance : SMul Int (KeyInterval root modus) where
   smul n x := { name := n * x.name }
 instance : Neg (KeyInterval root modus) where
   neg i := { name := -i.name }
+instance : ToString (KeyInterval root modus) where
+  toString i :=
+    if i.name % 7 == 0 then
+      s!"{i.name / 7}"
+    else
+      s!"{modus}/{i.name}"
 
 namespace KeyInterval
 
@@ -297,12 +303,12 @@ protected def zero { root modus : Hep } : KeyInterval root modus := ⟨0⟩
 /-- Generic interval octave is the same in every key -/
 protected def octave { root modus : Hep } : KeyInterval root modus := ⟨7⟩
 
-instance : ToString (KeyInterval root modus) where
-  toString i :=
-    if i.name % 7 == 0 then
-      s!"{i.name / 7}"
-    else
-      s!"{modus}/{i.name}"
+/-- A plain key interval where the `root` and `modus` are equal do not impart any accidental -/
+theorem plain_no_accidental { root : Hep } (p : Pitch) (i : KeyInterval root root)
+  : (p + i).acc = p.acc := by
+  unfold HAdd.hAdd
+  unfold instHAddPitchKeyInterval
+  sorry
 
 end KeyInterval
 
@@ -313,17 +319,17 @@ instance diatonic (root : Tone) (modus : Hep) : Scale Pitch Interval where
   pitches := List.finRange 7 |>.map λ i =>
     let name := i.toNat + root.name.toNat
     -- Nominal shift if the letters are read directly with the same accidentals
-    let shiftNominal := (root.name : Fin 7).toNat.repeat List.rotateLeft spaces
+    let shiftNominal := List.rotateLeft spaces root.name.toNat
       |>.take i.toNat |>.sum
     -- Actual shift determined by modus
-    let shiftModus := (modus : Fin 7).toNat.repeat List.rotateLeft spaces
+    let shiftModus := List.rotateLeft spaces modus.toNat
       |>.take i.toNat |>.sum
     { name, acc := ⟨shiftModus - shiftNominal + root.acc.semitones⟩ }
 
 instance equalTempTuning root modus : Tuning Pitch EqualTemp.Pitch (src := (diatonic root modus).toPseudoScale) (dst := EqualTemp.et12.toPseudoScale) where
   liftPitch pitch :=
     -- Nominal shift if the letters are read directly with the same accidentals
-    let shiftNominal := (root.name : Fin 7).toNat.repeat List.rotateLeft spaces
+    let shiftNominal := List.rotateLeft spaces root.name.toNat
       |>.take pitch.hep.toNat |>.sum
     let total := shiftNominal + pitch.acc.semitones + pitch.octave * 12
     total
