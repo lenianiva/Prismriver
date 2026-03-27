@@ -303,12 +303,25 @@ protected def zero { root modus : Hep } : KeyInterval root modus := ⟨0⟩
 /-- Generic interval octave is the same in every key -/
 protected def octave { root modus : Hep } : KeyInterval root modus := ⟨7⟩
 
+theorem rotateLeft_add_length {α : Type} (l : List α) (n : Nat) : List.rotateLeft l (n + l.length) = List.rotateLeft l n := by
+  unfold List.rotateLeft
+  simp
+
+theorem add_sub_cancel_middle (a b c : Nat) : a + b + c - b = a + c := by
+   apply Eq.symm
+   apply Nat.eq_sub_of_add_eq
+   exact Nat.add_right_comm a c b
+
 /-- A plain key interval where the `root` and `modus` are equal do not impart any accidental -/
 theorem plain_no_accidental { root : Hep } (p : Pitch) (i : KeyInterval root root)
   : (p + i).acc = p.acc := by
   unfold HAdd.hAdd
   unfold instHAddPitchKeyInterval
-  sorry
+  have h : spaces.length = 7 := rfl
+  rw [← h]
+  simp only [add_sub_cancel_middle]
+  rw [rotateLeft_add_length]
+  simp
 
 end KeyInterval
 
