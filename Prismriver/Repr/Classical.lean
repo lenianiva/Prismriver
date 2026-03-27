@@ -253,6 +253,54 @@ def minorTriad (p : Pitch) : List Pitch := [
 
 end Interval
 
+/-- Interval with only a name distance in a particular key. Also known as a generic interval -/
+structure KeyInterval (modus : Hep) where
+  name : Int
+
+instance : HAdd Pitch (KeyInterval modus) Pitch where
+  hAdd p i :=
+    let name := p.name + i.name
+    -- If the modus is C, there should not be any shift
+    let distance := i.name.fmod 7 |>.toNat
+    let shiftModus : Int := (p.name.toNat + modus.toNat).repeat List.rotateRight spaces
+      |>.take distance |>.sum
+    let shiftNominal : Int := p.name.toNat.repeat List.rotateRight spaces
+      |>.take distance |>.sum
+    --let Δsemitones := shiftNominal - shiftModus
+    let Δsemitones := shiftNominal - shiftModus
+    { name, acc := { semitones := p.acc.semitones + Δsemitones } }
+instance : Neg (KeyInterval root) where
+  neg i := { name := -i.name }
+
+example : (Pitch.new .a 3) + (⟨1⟩ : KeyInterval .d) = (Pitch.new .b 3 .flat) := rfl
+example : (Pitch.new .a 3) + (⟨8⟩ : KeyInterval .d) = (Pitch.new .b 4 .flat) := rfl
+example : (Pitch.new .a 3) + (⟨9⟩ : KeyInterval .d) = (Pitch.new .c 5) := rfl
+example : (Pitch.new .c 4) + (⟨2⟩ : KeyInterval .c) = (Pitch.new .e 4) := rfl
+
+instance : Add (KeyInterval modus) where
+  add x y := { name := x.name + y.name }
+instance : Sub (KeyInterval modus) where
+  sub x y := { name := x.name - y.name }
+instance : SMul Int (KeyInterval modus) where
+  smul n x := { name := n * x.name }
+instance : Neg (KeyInterval modus) where
+  neg i := { name := -i.name }
+
+namespace KeyInterval
+
+protected def zero { modus : Hep } : KeyInterval modus := ⟨0⟩
+/-- Generic interval octave is the same in every key -/
+protected def octave { modus : Hep } : KeyInterval modus := ⟨7⟩
+
+instance : ToString (KeyInterval modus) where
+  toString i :=
+    if i.name % 7 == 0 then
+      s!"{i.name / 7}"
+    else
+      s!"{modus}/{i.name}"
+
+end KeyInterval
+
 /-- 7-tone diatonic scale -/
 instance diatonic (root : Tone) (modus : Hep) : Scale Pitch Interval where
   name := s!"{root} {modus.modus}"
