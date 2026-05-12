@@ -1,0 +1,45 @@
+import Prismriver.Repr.Classical
+
+namespace Prismriver
+
+variable (P I) [HAdd P I P]
+
+structure Instrument where
+  name : String
+  /-- Generated harmonics relative to fundamental tone -/
+  harmonics : List I := []
+  /-- Physical notes generated on a scale -/
+  scale : Scale P I
+  lowest : Option P := .none
+  highest : Option P := .none
+
+namespace Instrument
+
+/-- Sine wave generator with no harmonics -/
+def sine : Instrument (P := Int) (I := Int) := {
+  name := "sine"
+  scale := et12,
+}
+
+/-- Dominant harmonics for strings in ET12 tuning -/
+def et12StringHarmonics : List Int := [
+  12,
+  12 + 7,
+  12 * 2,
+  12 * 2 + 5,
+  12 * 2 + 7,
+]
+
+/-- Equally-tempered acoustic grand piano -/
+def acoustic_grand : Instrument (P := Int) (I := Int) := {
+  name := "acoustic_grand"
+  harmonics := et12StringHarmonics,
+  scale := et12,
+}
+
+/-- Equally-tempered violin -/
+def violin : Instrument (P := Int) (I := Int) := {
+  name := "violin"
+  harmonics := et12StringHarmonics,
+  scale := et12,
+}

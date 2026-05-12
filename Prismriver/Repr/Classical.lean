@@ -1,19 +1,24 @@
 import Prismriver.Repr.Scale
 import Prismriver.Repr.Note
 
+import Lean.ToExpr
+
 namespace Prismriver.Classical
 
 /-- Accidental measured in terms of the number of semitones from natural. -/
 structure Accidental where
   semitones : Int := 0
-  deriving BEq, Inhabited
+  deriving BEq, Inhabited, Ord
 
-namespace Accidental
+instance : LT Accidental := ltOfOrd
+instance : LE Accidental := leOfOrd
 
-protected def natural : Accidental := ⟨0⟩
-protected def sharp : Accidental := ⟨1⟩
-protected def flat : Accidental := ⟨-1⟩
-
+open Lean in
+instance : ToExpr Accidental where
+  toExpr a :=
+    let semitones := toExpr a.semitones
+    mkAppN (mkConst ``Accidental.mk) #[semitones]
+  toTypeExpr : Expr := mkConst ``Accidental
 instance : ToString Accidental where
   toString a :=
     if a.semitones == 0 then
@@ -23,6 +28,12 @@ instance : ToString Accidental where
       let one := if sign then "♯" else "♭"
       let n := Int.natAbs a.semitones
       String.join (List.replicate n one)
+
+namespace Accidental
+
+protected def natural : Accidental := ⟨0⟩
+protected def sharp : Accidental := ⟨1⟩
+protected def flat : Accidental := ⟨-1⟩
 
 protected def toSuffix : Accidental → String
   | ⟨0⟩ => ""
@@ -91,6 +102,7 @@ protected def Hep.toNat (h : Hep) := (h : Fin 7).toNat
 /-- Semitone spaces between names -/
 def spaces := [2, 2, 1, 2, 2, 2, 1]
 
+/-- Equivalence classes of pitches modulo octave -/
 structure Tone where
   name : Hep
   acc : Accidental := .natural
@@ -102,7 +114,10 @@ instance : ToString Tone where
 structure Pitch where
   name : Int
   acc : Accidental := .natural
-  deriving BEq, Inhabited
+  deriving BEq, Inhabited, Ord
+
+instance : LT Pitch := ltOfOrd
+instance : LE Pitch := leOfOrd
 
 protected def Pitch.new (hep : Hep) (octave : Int) (acc : Accidental := .natural) : Pitch :=
   { name := hep.toNat + octave * 7, acc }
@@ -117,9 +132,19 @@ protected def Pitch.octave (p : Pitch) : Int :=
 instance : ToString Pitch where
   toString t := s!"{t.tone}{t.octave}"
 
+open Lean in
+instance : ToExpr Pitch where
+  toExpr p :=
+    let name := toExpr p.name
+    let acc := toExpr p.acc
+    mkAppN (mkConst ``Pitch.mk) #[name, acc]
+  toTypeExpr : Expr := mkConst ``Pitch
+
 namespace Pitch
 
 protected def c4 : Pitch := ⟨7 * 4, .natural⟩
+
+example : Pitch.c4 < (⟨7 * 4, .sharp⟩ : Pitch) := by decide
 
 end Pitch
 
@@ -229,24 +254,95 @@ def minorTriad (p : Pitch) : List Pitch := [
 
 end Interval
 
+/-- Interval with only a name distance in a particular key. Also known as a generic interval -/
+structure KeyInterval (root modus : Hep) where
+  name : Int
+
+instance : HAdd Pitch (KeyInterval root modus) Pitch where
+  hAdd p i :=
+    let name := p.name + i.name
+    -- If the modus and root are equal, there should not be any shift since there are no flats or sharps
+    let distance := i.name.fmod 7 |>.toNat
+    let s1 := p.name.toNat + modus.toNat + 7 - root.toNat
+    let shiftModus : Int := List.rotateLeft spaces s1
+      |>.take distance |>.sum
+    let shiftNominal : Int := List.rotateLeft spaces p.name.toNat
+      |>.take distance |>.sum
+    let Δsemitones := shiftModus - shiftNominal
+    { name, acc := { semitones := p.acc.semitones + Δsemitones } }
+instance : Neg (KeyInterval root modus) where
+  neg i := { name := -i.name }
+
+example : (Pitch.new .c 4) + (⟨2⟩ : KeyInterval .c .c) = (Pitch.new .e 4) := rfl
+example : (Pitch.new .c 4) + (⟨3⟩ : KeyInterval .c .c) = (Pitch.new .f 4) := rfl
+example : (Pitch.new .c 4) + (⟨-1⟩ : KeyInterval .c .c) = (Pitch.new .b 3) := rfl
+example : (Pitch.new .a 3) + (⟨1⟩ : KeyInterval .d .a) = (Pitch.new .b 3 .flat) := rfl
+example : (Pitch.new .a 3) + (⟨8⟩ : KeyInterval .d .a) = (Pitch.new .b 4 .flat) := rfl
+example : (Pitch.new .a 3) + (⟨9⟩ : KeyInterval .d .a) = (Pitch.new .c 5) := rfl
+example : (Pitch.new .d 4) + (⟨5⟩ : KeyInterval .d .a) = (Pitch.new .b 4 .flat) := rfl
+example : (Pitch.new .d 4) + (⟨4⟩ : KeyInterval .d .d) = (Pitch.new .a 4) := rfl
+
+instance : Add (KeyInterval root modus) where
+  add x y := { name := x.name + y.name }
+instance : Sub (KeyInterval root modus) where
+  sub x y := { name := x.name - y.name }
+instance : SMul Int (KeyInterval root modus) where
+  smul n x := { name := n * x.name }
+instance : Neg (KeyInterval root modus) where
+  neg i := { name := -i.name }
+instance : ToString (KeyInterval root modus) where
+  toString i :=
+    if i.name % 7 == 0 then
+      s!"{i.name / 7}"
+    else
+      s!"{modus}/{i.name}"
+
+namespace KeyInterval
+
+protected def zero { root modus : Hep } : KeyInterval root modus := ⟨0⟩
+/-- Generic interval octave is the same in every key -/
+protected def octave { root modus : Hep } : KeyInterval root modus := ⟨7⟩
+
+theorem rotateLeft_add_length {α : Type} (l : List α) (n : Nat) : List.rotateLeft l (n + l.length) = List.rotateLeft l n := by
+  unfold List.rotateLeft
+  simp
+
+theorem add_sub_cancel_middle (a b c : Nat) : a + b + c - b = a + c := by
+   apply Eq.symm
+   apply Nat.eq_sub_of_add_eq
+   exact Nat.add_right_comm a c b
+
+/-- A plain key interval where the `root` and `modus` are equal do not impart any accidental -/
+theorem plain_no_accidental { root : Hep } (p : Pitch) (i : KeyInterval root root)
+  : (p + i).acc = p.acc := by
+  unfold HAdd.hAdd
+  unfold instHAddPitchKeyInterval
+  have h : spaces.length = 7 := rfl
+  rw [← h]
+  simp only [add_sub_cancel_middle]
+  rw [rotateLeft_add_length]
+  simp
+
+end KeyInterval
+
 /-- 7-tone diatonic scale -/
 instance diatonic (root : Tone) (modus : Hep) : Scale Pitch Interval where
   name := s!"{root} {modus.modus}"
   fundamental := Interval.octave
   pitches := List.finRange 7 |>.map λ i =>
-    let name := i.add root.name
+    let name := i.toNat + root.name.toNat
     -- Nominal shift if the letters are read directly with the same accidentals
-    let shiftNominal := (root.name : Fin 7).toNat.repeat List.rotateLeft spaces
+    let shiftNominal := List.rotateLeft spaces root.name.toNat
       |>.take i.toNat |>.sum
     -- Actual shift determined by modus
-    let shiftModus := (modus : Fin 7).toNat.repeat List.rotateLeft spaces
+    let shiftModus := List.rotateLeft spaces modus.toNat
       |>.take i.toNat |>.sum
     { name, acc := ⟨shiftModus - shiftNominal + root.acc.semitones⟩ }
 
 instance equalTempTuning root modus : Tuning Pitch EqualTemp.Pitch (src := (diatonic root modus).toPseudoScale) (dst := EqualTemp.et12.toPseudoScale) where
   liftPitch pitch :=
     -- Nominal shift if the letters are read directly with the same accidentals
-    let shiftNominal := (root.name : Fin 7).toNat.repeat List.rotateLeft spaces
+    let shiftNominal := List.rotateLeft spaces root.name.toNat
       |>.take pitch.hep.toNat |>.sum
     let total := shiftNominal + pitch.acc.semitones + pitch.octave * 12
     total
@@ -255,11 +351,15 @@ example : (Pitch.new .c 4) + Interval.octave = (Pitch.new .c 5) := rfl
 example : (Pitch.new .c 4) + Interval.p5 = (Pitch.new .g 4) := rfl
 example : (Pitch.new .b 5) + Interval.p5 = (Pitch.new .f 6 .sharp) := rfl
 example : (Pitch.new .e 3) - (Pitch.new .c 3) = Interval.ma3 := rfl
+example : (diatonic ⟨.d, .natural⟩ .a).pitches = [.new .d 0, .new .e 0, .new .f 0, .new .g 0, .new .a 0, .new .b 0 .flat, .new .c 1] := rfl
 
-abbrev Note := Prismriver.Note Pitch Rat Rat
+abbrev Note := @Prismriver.Note Pitch Rat
 
 structure Bar where
   noteValues : List Note
   timeTop: Nat
   timeBot : Nat
   deriving Inhabited
+
+def time22 := timeSignature 2 2
+def time44 := timeSignature 4 4

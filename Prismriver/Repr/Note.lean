@@ -1,16 +1,25 @@
 import Prismriver.Repr.Scale
 import Prismriver.Repr.Time
 
+import Lean.ToExpr
+
 namespace Prismriver
 
-variable (P D I : Type)
-variable [HAdd P I P] [Scale P I]
-variable [Add D] [HAdd T D T] [HSub T T D] [SMul Int D] [SMul D I]
-
-structure Note (P T D : Type) where
+structure Note (P D : Type) where
   pitch : P
-  time : T
   duration : D
+  deriving Ord
 
-instance [ToString P] [ToString T] [ToString D] : ToString (Note P T D) where
-  toString n := s!"{n.pitch} {n.time} {n.duration}"
+instance [Ord P] [Ord D] : LT (Note P D) := ltOfOrd
+instance [Ord P] [Ord D] : LE (Note P D) := leOfOrd
+
+instance [ToString P] [ToString D] : ToString (Note P D) where
+  toString n := s!"{n.pitch}{n.duration}"
+
+open Lean in
+instance [ToExpr P] [ToExpr D] : ToExpr (Note P D) where
+  toExpr n :=
+    let pitch := toExpr n.pitch
+    let duration := toExpr n.duration
+    mkAppN (mkConst ``Note.mk) #[pitch, duration]
+  toTypeExpr : Expr := mkConst ``Note
