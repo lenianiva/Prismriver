@@ -44,7 +44,7 @@ protected def Note.toMusicXML (note : Classical.Note) : Xml.Element :=
 /-- Export a score to timewise MusicXML form -/
 protected def Score.toMusicXML (score : Classical.Score) (metadata : Metadata := {})
   : Xml.Element :=
-  let notes : Array Xml.Content := Id.run $ score.foldM (P := Classical.Pitch) (I := Classical.Interval)
+  let notes : Array Xml.Content := Id.run $ score.foldM (P := Classical.Pitch)
     (init := #[]) (m := λ notes { events, .. } => do
     let newNotes := events.filterMap λ
       | .note note _instrument? =>

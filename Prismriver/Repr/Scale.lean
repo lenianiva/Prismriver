@@ -1,12 +1,10 @@
+import Lean
+
 namespace Prismriver
 
-/-- A set of permitted pitches -/
+/-- A scale is a set of pitches -/
 class PseudoScale (P : Type) where
   name : String
-  isFinite : Bool := false
-  /-- The list of all permitted notes on the scale. For periodic and infinite
-  scales this should return empty -/
-  allNotes : List P := []
 
 /-- We make no distinction between scales and tuning systems. They are
 represented by the same class. For example, a tuning system could be represented
@@ -17,8 +15,10 @@ class Tuning (P₁ P₂ : Type) (src : PseudoScale P₁) (dst : PseudoScale P₂
 
 /-- A scale with a repeating fundamental interval. Each pitch in the scale is
 represented as a tone along with a multiple of the fundamental interval. -/
-class Scale (P I : Type) [HAdd P I P] extends PseudoScale P where
-  isFinite := false
+class Scale (P) extends PseudoScale P where
+  I : Type
+  hAdd : HAdd P I P
+  hSub : HSub P P I
   /-- The fundamental interval (usually an octave) -/
   fundamental : I
   /-- List all notes in the 0th interval. e.g. For C major, this would be C,D,E,F,G,A,B -/
@@ -29,7 +29,10 @@ namespace EqualTemp
 abbrev Pitch := Int
 abbrev Interval := Int
 
-instance scale (n : Nat) : Scale Pitch Interval where
+instance scale (n : Nat) : Scale Pitch where
+  I := Interval
+  hAdd := @instHAdd Int Int.instAdd
+  hSub := @instHSub Int Int.instSub
   name := s!"{n}-ET"
   fundamental := n
   pitches := List.finRange n |>.map (·.toNat)
