@@ -18,6 +18,22 @@ def single (name s : String) : Xml.Element := .Element
     (attributes := .empty)
     (content := #[.Character s])
 
+private structure OutputState where
+  time : MeasuredTime := {}
+  measure : List Classical.Note := []
+  /-- Measure number -/
+  measureN : Nat := 0
+
+private def OutputState.packMeasure (σ : OutputState) (time : MeasuredTime)
+  : (OutputState × List Classical.Note) :=
+  let σ' := {
+    σ with
+    time,
+    measure := []
+    measureN := σ.measureN + 1
+  }
+  (σ', σ.measure)
+
 end Xml
 
 open Prismriver.Xml
@@ -44,27 +60,38 @@ protected def Note.toMusicXML (note : Classical.Note) : Xml.Element :=
 /-- Export a score to timewise MusicXML form -/
 protected def Score.toMusicXML (score : Classical.Score) (metadata : Metadata := {})
   : Xml.Element :=
-  let notes : Array Xml.Content := Id.run $ score.foldM (P := Classical.Pitch)
-    (init := #[]) (m := λ notes { events, .. } => do
-    let newNotes := events.filterMap λ
-      | .note note _instrument? =>
-        .some $ Xml.Content.Element note.toMusicXML
-      | _ => .none
-    return notes ++ newNotes)
+  let measuresM : StateM OutputState (Array Xml.Element) := score.foldM (P := Classical.Pitch)
+    (init := #[]) (m := λ acc { time, events } => do
+    let σ ← get
+    let newMeasure ← if σ.time.bar ≠ time.bar then
+        let (σ', measureNotes) := σ.packMeasure time
+        let attrs := (.empty : Xml.Attributes).insert "number" (toString σ.measureN)
+        set σ'
+        let measure := Xml.Element.Element
+          (name := "measure")
+          (attributes := attrs)
+          (content := #[
+            .Element (.Element
+              (name := "part")
+              (attributes := (.empty : Xml.Attributes).insert "id" "part1")
+              (content := measureNotes.toArray.map (.Element ·.toMusicXML))
+            )
+          ])
+        pure #[measure]
+      else
+        --
+        let newNotes := events.filterMap λ
+          | .note note _instrument? =>
+            .some note
+          | _ => .none
+        modify λ state ↦ { state with measure := state.measure ++ newNotes }
+        pure #[]
+      -- consolidate another bar
+    return acc ++ newMeasure)
 
-  let measures : Array Xml.Content := #[
-    .Element (.Element
-      (name := "measure")
-      (attributes := (.empty : Xml.Attributes).insert "number" "1")
-      (content := #[
-        .Element (.Element
-          (name := "part")
-          (attributes := (.empty : Xml.Attributes).insert "id" "part1")
-          (content := notes)
-        )
-      ])
-    ),
-  ]
+  let measures : Array Xml.Content := measuresM.run' {}
+    |>.map (Xml.Content.Element ·)
+
   let partList : Array Xml.Content := #[
     .Element (single "part-name" "part1"),
     .Element (single "id" "part1"),

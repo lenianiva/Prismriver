@@ -31,8 +31,8 @@ instance : ToExpr Rat where
   toTypeExpr : Expr := mkConst ``Rat
 
 structure MeasuredTime where
-  bar : Int
-  offset : Rat
+  bar : Int := 0
+  offset : Rat := 0
   deriving Ord
 instance : LT MeasuredTime := ltOfOrd
 instance : LE MeasuredTime := leOfOrd
