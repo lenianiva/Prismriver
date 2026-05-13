@@ -326,7 +326,10 @@ theorem plain_no_accidental { root : Hep } (p : Pitch) (i : KeyInterval root roo
 end KeyInterval
 
 /-- 7-tone diatonic scale -/
-instance diatonic (root : Tone) (modus : Hep) : Scale Pitch Interval where
+instance diatonic (root : Tone) (modus : Hep) : Scale Pitch where
+  I := Interval
+  hAdd := instHAddPitchInterval
+  hSub := instHSubPitchOutParamInterval
   name := s!"{root} {modus.modus}"
   fundamental := Interval.octave
   pitches := List.finRange 7 |>.map λ i =>
@@ -339,7 +342,9 @@ instance diatonic (root : Tone) (modus : Hep) : Scale Pitch Interval where
       |>.take i.toNat |>.sum
     { name, acc := ⟨shiftModus - shiftNominal + root.acc.semitones⟩ }
 
-instance equalTempTuning root modus : Tuning Pitch EqualTemp.Pitch (src := (diatonic root modus).toPseudoScale) (dst := EqualTemp.et12.toPseudoScale) where
+instance equalTempTuning root modus : Tuning Pitch EqualTemp.Pitch
+         (src := (diatonic root modus).toPseudoScale)
+         (dst := EqualTemp.et12.toPseudoScale) where
   liftPitch pitch :=
     -- Nominal shift if the letters are read directly with the same accidentals
     let shiftNominal := List.rotateLeft spaces root.name.toNat
