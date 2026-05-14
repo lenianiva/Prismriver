@@ -7,6 +7,8 @@ variable (P T D)
 
 inductive ControlEvent
   | scaleChange (scale : Scale P)
+  /-- Indicate change of a bar -/
+  | wall
 
 /-- An event occuring at some particular time -/
 inductive Event where
@@ -35,3 +37,5 @@ protected def foldM [Monad M] (score : Score P T D) (m : α → Context P T → 
     m acc context
 
 end Score
+
+abbrev Classical.Score := @Prismriver.Score Pitch MeasuredTime Rat
