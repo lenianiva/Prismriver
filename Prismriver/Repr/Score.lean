@@ -7,6 +7,8 @@ variable (P T D)
 
 inductive ControlEvent
   | scaleChange (scale : Scale P)
+  /-- Indicate change of a bar -/
+  | wall
 
 /-- An event occuring at some particular time -/
 inductive Event where
