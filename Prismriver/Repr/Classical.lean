@@ -41,6 +41,8 @@ protected def toSuffix : Accidental → String
 
 instance : Add Accidental where
   add x y := { semitones := x.semitones + y.semitones }
+instance : Neg Accidental where
+  neg x := { semitones := -x.semitones }
 instance : Sub Accidental where
   sub x y := { semitones := x.semitones - y.semitones }
 instance : SMul Int Accidental where
@@ -233,6 +235,8 @@ instance : ToString Interval where
       let acc : Accidental := ⟨nominalSemitones - semitones⟩
       s!"{marker}{i.name+1}{acc.toSuffix}"
 
+instance : Neg Interval where
+  neg x := { name := -x.name, semitones := -x.semitones }
 instance : Add Interval where
   add x y := { name := x.name + y.name, semitones := x.semitones + y.semitones }
 instance : Sub Interval where
@@ -327,10 +331,16 @@ end KeyInterval
 
 /-- 7-tone diatonic scale -/
 instance diatonic (root : Tone) (modus : Hep) : Scale Pitch where
+  name := s!"{root} {modus.modus}"
+
   I := Interval
   hAdd := instHAddPitchInterval
   hSub := instHSubPitchOutParamInterval
-  name := s!"{root} {modus.modus}"
+  add := Interval.instAdd
+  sMul := Interval.instSMulInt
+  neg := Interval.instNeg
+  zero := ⟨0, 0⟩
+
   fundamental := Interval.octave
   pitches := List.finRange 7 |>.map λ i =>
     let name := i.toNat + root.name.toNat
@@ -341,6 +351,16 @@ instance diatonic (root : Tone) (modus : Hep) : Scale Pitch where
     let shiftModus := List.rotateLeft spaces modus.toNat
       |>.take i.toNat |>.sum
     { name, acc := ⟨shiftModus - shiftNominal + root.acc.semitones⟩ }
+
+  neg_add := sorry
+  add_zero := sorry
+  add_comm := sorry
+  add_assoc := sorry
+  zero_mul := sorry
+  mul_distrib := sorry
+  neg_mul := sorry
+  add_pitch_zero := sorry
+  add_pitch_assoc := sorry
 
 instance equalTempTuning root modus : Tuning Pitch EqualTemp.Pitch
          (src := (diatonic root modus).toPseudoScale)
