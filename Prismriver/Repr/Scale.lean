@@ -72,12 +72,13 @@ theorem pitchCong_equivalence [scale : Scale P] (φ : scale.I) : Equivalence (pi
   }
 
 /-- Equivalence classes of pitches -/
-instance pitchSetoid [scale : Scale P] (φ : scale.I) : Setoid P where
+instance pitchSetoid [scale : Scale P] (φ : scale.I := scale.fundamental) : Setoid P where
   r := pitchCong φ
   iseqv := pitchCong_equivalence φ
 
 /-- Equivalence of pitch classes -/
-abbrev pitchClass [scale : Scale P] (φ : scale.I) := Quotient (pitchSetoid φ)
+abbrev pitchClass [scale : Scale P] (φ : scale.I := scale.fundamental)
+   := Quotient (pitchSetoid φ)
 
 namespace EqualTemp
 
