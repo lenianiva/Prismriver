@@ -1,4 +1,6 @@
-import Lean
+import Lean.Data.RBTree
+
+open Lean
 
 namespace Prismriver
 
@@ -79,6 +81,9 @@ instance pitchSetoid [scale : Scale P] (φ : scale.I := scale.fundamental) : Set
 /-- Equivalence of pitch classes -/
 abbrev pitchClass [scale : Scale P] (φ : scale.I := scale.fundamental)
    := Quotient (pitchSetoid φ)
+
+/-- Ordered list of notes. To accomodate for inversions, this is not ordered. -/
+abbrev Chord P := List P
 
 namespace EqualTemp
 
