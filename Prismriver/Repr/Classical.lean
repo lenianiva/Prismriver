@@ -627,15 +627,9 @@ theorem plain_no_accidental { root : Hep } (p : Pitch) (i : KeyInterval root roo
 end KeyInterval
 
 /-- 7-tone diatonic scale -/
-instance diatonic (root : Tone) (modus : Hep) : Scale Pitch where
+instance diatonic (root : Tone) (modus : Hep) : Scale Pitch Interval where
   name := s!"{root} {modus.modus}"
 
-  I := Interval
-  hAdd := instHAddPitchInterval
-  hSub := instHSubPitchOutParamInterval
-  add := Interval.instAdd
-  sMul := Interval.instSMulInt
-  neg := Interval.instNeg
   zero := ⟨0, 0⟩
 
   fundamental := Interval.octave
@@ -686,5 +680,5 @@ structure Bar where
 def time22 := timeSignature 2 2
 def time44 := timeSignature 4 4
 
-#eval ((Pitch.new .c 4 + Interval.p5) - Interval.p5) == Pitch.new .c 4
-#eval ((Pitch.new .e 3 + Interval.ma3) - Interval.ma3) == Pitch.new .e 3
+example : ((Pitch.new .c 4 + Interval.p5) - Interval.p5) = Pitch.new .c 4 := rfl
+example : ((Pitch.new .e 3 + Interval.ma3) - Interval.ma3) = Pitch.new .e 3 := rfl

@@ -17,13 +17,7 @@ class Tuning (P₁ P₂ : Type) (src : PseudoScale P₁) (dst : PseudoScale P₂
 
 /-- A scale with a repeating fundamental interval. Each pitch in the scale is
 represented as a tone along with a multiple of the fundamental interval. -/
-class Scale (P) extends PseudoScale P where
-  I : Type
-  add : Add I
-  hAdd : HAdd P I P
-  hSub : HSub P P I
-  sMul: SMul Int I
-  neg : Neg I
+class Scale (P I : Type) extends PseudoScale P, Add I, HAdd P I P, HSub P P I, SMul Int I, Neg I where
   /-- The fundamental interval (usually an octave) -/
   fundamental : I
   /-- List all notes in the 0th interval. e.g. For C major, this would be C,D,E,F,G,A,B -/
@@ -42,29 +36,26 @@ class Scale (P) extends PseudoScale P where
   add_pitch_zero (p : P) : p + zero = p
   add_pitch_assoc (p : P) (i j : I) : (p + i) + j = p + (i + j)
 
-def pitchCong [scale : Scale P] (φ : scale.I) (p q : P) :=
-  let _ := scale.sMul
-  let _ := scale.hAdd
+variable { P I }
+
+def pitchCong [scale : Scale P I] (φ : I) (p q : P) :=
   ∃ (n : Int), p = q + n • φ
 
-theorem pitchCong_equivalence [scale : Scale P] (φ : scale.I) : Equivalence (pitchCong φ) :=
+theorem pitchCong_equivalence [scale : Scale P I] (φ : I) : Equivalence (@pitchCong (P := P) (I := I) scale φ) :=
   {
     refl p := by
       unfold pitchCong
-      simp
       apply Exists.intro 0
       simp [scale.zero_mul, scale.add_pitch_zero]
     ,
     symm hcong := by
       unfold pitchCong at *
-      simp at *
       rcases hcong with ⟨n, h⟩
       apply Exists.intro (-n)
       simp [h, scale.neg_mul, scale.add_pitch_assoc, scale.neg_add, scale.add_pitch_zero]
     ,
     trans hpqc hqrc := by
       unfold pitchCong at *
-      simp at *
       rcases hpqc with ⟨npq, hpq⟩
       rcases hqrc with ⟨nqr, hqr⟩
       apply Exists.intro (npq + nqr)
@@ -73,14 +64,15 @@ theorem pitchCong_equivalence [scale : Scale P] (φ : scale.I) : Equivalence (pi
     ,
   }
 
+set_option synthInstance.checkSynthOrder false in
 /-- Equivalence classes of pitches -/
-instance pitchSetoid [scale : Scale P] (φ : scale.I := scale.fundamental) : Setoid P where
+instance pitchSetoid [scale : Scale P I] (φ : I := scale.fundamental) : Setoid P where
   r := pitchCong φ
   iseqv := pitchCong_equivalence φ
 
 /-- Equivalence of pitch classes -/
-abbrev pitchClass [scale : Scale P] (φ : scale.I := scale.fundamental)
-   := Quotient (pitchSetoid φ)
+abbrev pitchClass [scale : Scale P I] (φ : I := scale.fundamental)
+   := Quotient (@pitchSetoid P I scale φ)
 
 /-- Ordered list of notes. To accomodate for inversions, this is not ordered. -/
 abbrev Chord P := List P
@@ -90,13 +82,7 @@ namespace EqualTemp
 abbrev Pitch := Int
 abbrev Interval := Int
 
-instance scale (n : Nat) : Scale Pitch where
-  I := Interval
-  hAdd := @instHAdd Int Int.instAdd
-  hSub := @instHSub Int Int.instSub
-  sMul := @instSMulOfMul Int Int.instMul
-  add := Int.instAdd
-  neg := Int.instNegInt
+instance scale (n : Nat) : Scale Pitch Interval where
   name := s!"{n}-ET"
   fundamental := n
   pitches := List.finRange n |>.map (·.toNat)
