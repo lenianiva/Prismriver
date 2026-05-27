@@ -103,6 +103,7 @@ protected def Hep.toNat (h : Hep) := (h : Fin 7).toNat
 def spaces := [2, 2, 1, 2, 2, 2, 1]
 
 /-- Equivalence classes of pitches modulo octave -/
+@[ext]
 structure Tone where
   name : Hep
   acc : Accidental := .natural
@@ -651,9 +652,23 @@ instance diatonic (root : Tone) (modus : Hep) : Scale Pitch Interval where
     unfold HSMul.hSMul Interval.instSMulInt instHSMul
     simp
     apply Interval.ext
+    simp only [Neg.neg]
+    rename_i x
+    exact Int.neg_mul _n x.name
+    simp only [Neg.neg]
+    rename_i x
+    exact Int.neg_mul _n x.semitones
+  mul_distrib := by
+    unfold HSMul.hSMul Interval.instSMulInt instHSMul
+    intro n m i
     simp
-    repeat sorry
-  mul_distrib := sorry
+    apply Interval.ext
+    unfold HAdd.hAdd instHAdd Add.add Int.instAdd Interval.instAdd
+    simp
+    rw [Int.add_mul]
+    unfold HAdd.hAdd instHAdd Add.add Int.instAdd Interval.instAdd
+    simp
+    rw [Int.add_mul]
   add_pitch_zero _ := by
     unfold HAdd.hAdd instHAddPitchInterval
     simp
