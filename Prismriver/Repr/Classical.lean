@@ -1,11 +1,8 @@
 import Prismriver.Repr.Scale
 import Prismriver.Repr.Note
-
-import Lean.ToExpr
-
 namespace Prismriver.Classical
-
 /-- Accidental measured in terms of the number of semitones from natural. -/
+@[ext]
 structure Accidental where
   semitones : Int := 0
   deriving BEq, Inhabited, Ord
@@ -81,6 +78,7 @@ protected def Hep.modus : Hep → String
   | .g => "mixolydian"
   | .a => "minor" -- also aeolian
   | .b => "locrian"
+
 instance : Coe Hep (Fin 7) where
   coe
     | .c => 0
@@ -113,6 +111,7 @@ structure Tone where
 instance : ToString Tone where
   toString t := if t.acc == .natural then toString t.name else s!"{t.name}{t.acc}"
 
+@[ext]
 structure Pitch where
   name : Int
   acc : Accidental := .natural
@@ -151,17 +150,76 @@ example : Pitch.c4 < (⟨7 * 4, .sharp⟩ : Pitch) := by decide
 end Pitch
 
 /-- An interval consists of a letter distance and a semitone distance -/
+@[ext]
 structure Interval where
   name : Int
   semitones : Int
   deriving BEq, Inhabited
 
-private def nameDistanceAux (total : Nat) (key : Hep) : Nat → Nat
+private def nameDistanceAux (total : Nat) (key : Fin 7) : Nat → Nat
   | 0 => total
   | remainder+1 =>
-    let key' : Fin 7 := key
-    let total' := total + spaces[key']
-    nameDistanceAux total' (key' + (1 : Fin 7)) remainder
+    nameDistanceAux (total + spaces[key]) (key + (1 : Fin 7)) remainder
+
+private theorem nameDistanceAux_total (t1 t2 : Nat) (key : Fin 7) (a : Nat)
+  : t1 + (nameDistanceAux t2 key a) = nameDistanceAux (t1 + t2) key a := by
+  induction a generalizing t1 t2 key
+  case zero =>
+    rfl
+  unfold nameDistanceAux
+  rename_i this
+  simp
+  rewrite [this]
+  rewrite [Nat.add_assoc]
+  rfl
+
+private theorem nameDistanceAux_next (total : Nat) (key : Fin 7) (n : Nat)
+  : nameDistanceAux total key (n + 1) = (nameDistanceAux total (key + 1) n) + spaces[key]
+  := by
+  unfold nameDistanceAux
+  split
+  . unfold nameDistanceAux
+    rfl
+  conv =>
+    lhs
+    unfold nameDistanceAux
+  conv =>
+    rhs
+    apply Nat.add_comm
+  rewrite [nameDistanceAux_total spaces[key]]
+  congr 1
+  omega
+
+private theorem nameDistanceAux_image (total : Nat) (key : Fin 7) (n m : Nat)
+  : nameDistanceAux total key (n + m) = nameDistanceAux 0 key n + nameDistanceAux total (key + (Fin.ofNat 7 n)) m := by
+  induction n generalizing total key m
+  case zero =>
+    simp
+    unfold nameDistanceAux
+    simp
+  case succ n hi =>
+    rewrite [Nat.add_comm, ← Nat.add_assoc]
+    repeat rewrite [nameDistanceAux_next]
+    rewrite [Nat.add_comm m _]
+    rw [Fin.add_ofNat]
+    rw [hi]
+    rw [Fin.add_ofNat]
+    simp
+    simp [Nat.add_assoc, Nat.add_comm, Nat.add_left_comm]
+    congr 1
+    refine Eq.symm (Fin.eq_of_val_eq ?_)
+    simp
+    refine Nat.add_mod_eq_add_mod_left n ?_
+    omega
+
+private theorem nameDistanceAux_sub_eq_addNeg (total : Nat) (key : Fin 7) (n m : Int)
+  : nameDistanceAux total key (n - m).toNat = nameDistanceAux total key ((n + -(m)).toNat) := by
+  induction n generalizing total key m
+  case ofNat =>
+    simp
+    rfl
+  case negSucc =>
+    rfl
 
 /-- Calculates the semitone distance of `n2 - n1` two pitches with no accidentals -/
 def nameDistance (n2 n1 : Int) : Int :=
@@ -173,20 +231,259 @@ def nameDistance (n2 n1 : Int) : Int :=
     let d : Int := nameDistanceAux 0 fin (Int.toNat (n1 - n2))
     (-d : Int)
 
+theorem nameDistance_refl (i : Int) : nameDistance i i = 0 := by
+  unfold nameDistance
+  split
+  simp
+  rfl
+  simp
+  rfl
+
+theorem nameDistance_swap (i j : Int) : nameDistance i j = - (nameDistance j i) := by
+  unfold nameDistance
+  repeat split <;> split
+  . have : i = j := Int.le_antisymm ‹i ≤ j› ‹j ≤ i›
+    rw [Int.sub_eq_zero.mpr this]
+    have : j = i := Eq.symm this
+    rw [Int.sub_eq_zero.mpr this]
+    rw [this]
+    rfl
+  . simp
+  . simp
+  . have : j < i := Int.lt_of_not_ge ‹¬ i ≤ j›
+    have : j ≤ i := Int.le_of_lt this
+    contradiction
+
+private theorem intCast_key (a b : Int) (h : b ≤ a) :
+    Fin.intCast b + Fin.ofNat 7 ((a + -b).toNat) = (Fin.intCast a : Fin 7) := by grind [Fin.intCast]
+
+theorem nameDistance_image (i j k : Int) : nameDistance i j + nameDistance j k = nameDistance i k := by
+  unfold nameDistance
+  simp
+  split
+  split
+  . have : k ≤ i := Int.le_trans ‹k ≤ j› ‹j ≤ i›
+    rewrite [if_pos this]
+    rewrite [nameDistanceAux_sub_eq_addNeg]
+    rewrite [nameDistanceAux_sub_eq_addNeg]
+    rewrite [nameDistanceAux_sub_eq_addNeg]
+    symm
+    have hsplit : (i + -k).toNat = (j + -k).toNat + (i + -j).toNat := by omega
+    rw [hsplit, nameDistanceAux_image]
+    simp
+    rw [Int.add_comm]
+    simp
+    congr 1
+    rw [intCast_key j k ‹k ≤ j›]
+  . split
+    rw [nameDistanceAux_sub_eq_addNeg]
+    rw [nameDistanceAux_sub_eq_addNeg]
+    rw [nameDistanceAux_sub_eq_addNeg]
+    have hsplit : (i + -j).toNat = (k + -j).toNat + (i + -k).toNat := by omega
+    symm
+    rw [hsplit, nameDistanceAux_image]
+    simp
+    rw [Int.add_comm]
+    congr 1
+    rw [← intCast_key k j (by omega)]
+    omega
+    rw [nameDistanceAux_sub_eq_addNeg, nameDistanceAux_sub_eq_addNeg, nameDistanceAux_sub_eq_addNeg]
+    symm
+    have hsplit : (k + -j).toNat = (i + -j).toNat + (k + -i).toNat := by omega
+    rw [hsplit, nameDistanceAux_image]
+    rw [← intCast_key i j ‹j ≤ i›]
+    omega
+  rw [nameDistanceAux_sub_eq_addNeg]
+  rw [nameDistanceAux_sub_eq_addNeg]
+  rw [nameDistanceAux_sub_eq_addNeg]
+  split
+  split
+  rw [nameDistanceAux_sub_eq_addNeg]
+  symm
+  have hsplit : (j + -k).toNat = (i + -k).toNat + (j + -i).toNat := by omega
+  rw [hsplit, nameDistanceAux_image]
+  rw [← intCast_key i k ‹k ≤ i›]
+  simp
+  omega
+  rw [nameDistanceAux_sub_eq_addNeg]
+  have hsplit : (j + -i).toNat = (k + -i).toNat + (j + -k).toNat := by omega
+  rw [hsplit, nameDistanceAux_image]
+  rw [← intCast_key k i (by omega)]
+  omega
+  split
+  omega
+  rw [nameDistanceAux_sub_eq_addNeg]
+  have hsplit : (k + -i).toNat = (j + -i).toNat + (k + -j).toNat := by omega
+  rw [hsplit, nameDistanceAux_image]
+  rw [← intCast_key j i (by omega)]
+  grind
+
 instance : HSub Pitch Pitch (outParam Interval) where
   hSub p1 p2 :=
     let Δname := nameDistance p1.name p2.name
     let Δacc := p1.acc - p2.acc
     { name := p1.name - p2.name, semitones := Δname + Δacc.semitones }
+
 /-- Group action of interval group on the set of pitches -/
 instance : HAdd Pitch Interval Pitch where
   hAdd p i :=
     let name := p.name + i.name
     -- Semitones accounted for in the name with no accidentals
     let Δsemitones := nameDistance name p.name
-    { name, acc := { semitones := i.semitones - Δsemitones} }
+--    { name, acc := { semitones := i.semitones - Δsemitones} }
+   { name, acc := { semitones := (p.acc.semitones + i.semitones) - Δsemitones} }
+
+instance : HSub Pitch Interval Pitch where
+  hSub p a :=
+  let name := p.name + -(a.name)
+  let Δsemitones := nameDistance name p.name
+  { name, acc := { semitones := (p.acc.semitones - a.semitones) - Δsemitones} }
+
+instance : HAdd Interval Int Interval where
+  hAdd i n :=
+  let semiChange := nameDistance (i.name + n) i.name
+  {name := i.name + n, semitones := i.semitones - semiChange }
+
+instance : HSub Interval Int Interval where
+  hSub i n :=
+  let semiChange := nameDistance (i.name + -(n)) i.name
+  {name := i.name + -(n), semitones := i.semitones + n - semiChange }
+
+instance : Add Interval where
+  add x y := { name := x.name + y.name, semitones := x.semitones + y.semitones }
+instance : Sub Interval where
+  sub x y := { name := x.name - y.name, semitones := x.semitones - y.semitones }
+instance : SMul Int Interval where
+  smul n x := { name := n * x.name, semitones := n * x.semitones }
+
 instance : Neg Interval where
   neg i := { name := -i.name, semitones := -i.semitones }
+instance : Neg Pitch where
+  neg p := { name := -p.name, acc := { semitones := -p.acc.semitones } }
+
+instance : Add Pitch where
+  add x y := { name := x.name + y.name, acc := {semitones := x.acc.semitones + y.acc.semitones }}
+instance : Sub Pitch where
+  sub x y := { name := x.name - y.name, acc := {semitones := x.acc.semitones - y.acc.semitones }}
+
+theorem hAdd_Interval_Interval_Add_Comm (x y : Interval) : x + y = y + x := by
+  unfold HAdd.hAdd
+  unfold instHAdd
+  unfold Add.add
+  unfold instAddInterval
+  simp
+  constructor
+  rw [Int.add_comm]
+  rw [Int.add_comm]
+
+theorem hAdd_Interval_Interval_Add_Assoc (i j k: Interval) : (i + j) + k = i + (j + k) := by
+  unfold HAdd.hAdd
+  unfold instHAdd
+  unfold Add.add
+  unfold instAddInterval
+  simp
+  constructor
+  rw [Int.add_assoc]
+  rw [Int.add_assoc]
+
+theorem hAdd_Interval_Interval_Neg_Sub (i j : Interval) : - (j - i) = -j + i := by
+  have : j - i = j + -i := by
+    unfold HSub.hSub instHSub Sub.sub instSubInterval
+    simp
+    unfold HAdd.hAdd instHAdd Add.add instAddInterval
+    simp
+    constructor
+    rw [Int.sub_eq_add_neg]
+    rfl
+    rfl
+  rw [this]
+  have : -(j + -i) = -j + i := by
+    unfold HAdd.hAdd instHAdd Add.add instAddInterval
+    simp
+    unfold Neg.neg instNegInterval
+    simp
+    constructor
+    omega
+    omega
+  rw [this]
+
+theorem hAdd_Interval_Interval_Neg_Add (i j: Interval) : - (j + i) = -j + -i := by
+  unfold HAdd.hAdd instHAdd Add.add instAddInterval
+  apply Interval.ext
+  unfold Neg.neg instNegInterval Int.instNegInt
+  grind
+  unfold Neg.neg instNegInterval
+  grind
+
+theorem hAdd_Pitch_Interval_Add_Assoc (i j : Interval) (p : Pitch) : (p + i) + j = p + (i + j) := by
+  unfold HAdd.hAdd
+  unfold instHAddPitchInterval
+  unfold instAddInterval
+  unfold instHAdd
+  simp only [Pitch.mk.injEq, Accidental.mk.injEq]
+  constructor
+  rw [Int.add_assoc]
+  rw [nameDistance_swap]
+  have h2 : (p.name + (i.name + j.name)) = (p.name + i.name + j.name) := by omega
+  rw [nameDistance_swap (p.name + i.name + j.name) (p.name + i.name)]
+  simp
+  rw [h2]
+  rw [nameDistance_swap (p.name+i.name+j.name) (p.name)]
+  simp
+  rw [Int.add_right_comm]
+  symm
+  rw [Int.add_comm]
+  symm
+  have h3 : nameDistance p.name (p.name + i.name) + nameDistance (p.name + i.name) (p.name + i.name + j.name) = nameDistance p.name (p.name + i.name + j.name) := by
+    rw [nameDistance_image p.name (p.name + i.name) (p.name + i.name + j.name)]
+  have h4 : p.acc.semitones + i.semitones + j.semitones = (p.acc.semitones + (i.semitones + j.semitones)) := by
+    omega
+  rw [Int.add_right_comm]
+  rw [Int.add_right_comm (p.acc.semitones + i.semitones + nameDistance p.name (p.name + i.name))
+                     j.semitones
+                     (nameDistance (p.name + i.name) (p.name + i.name + j.name))]
+  rw [Int.add_assoc (p.acc.semitones + i.semitones)
+                (nameDistance p.name (p.name + i.name))
+                (nameDistance (p.name + i.name) (p.name + i.name + j.name))]
+  rw [h3]
+  rw [Int.add_comm (p.acc.semitones + i.semitones) (nameDistance p.name (p.name + i.name + j.name))]
+  rw [Int.add_assoc (nameDistance p.name (p.name + i.name + j.name)) (p.acc.semitones + i.semitones) j.semitones]
+  rw [h4]
+
+
+
+theorem hAdd_Pitch_Interval_Add_Comm (i j : Interval) (p : Pitch) : p + j + i = p + i + j := by
+  unfold HAdd.hAdd instHAddPitchInterval
+  simp only [Pitch.mk.injEq, Accidental.mk.injEq]
+  constructor
+  rw [Int.add_right_comm]
+  have h1 : (p.name + i.name + j.name) = (p.name + j.name + i.name) := by omega
+  rw [← h1]
+  have hsI  := nameDistance_swap (p.name + i.name + j.name) (p.name + i.name)
+  have hsI' := nameDistance_swap (p.name + i.name) p.name
+  rw [hsI']
+  simp
+  rw [hsI]
+  simp
+  rw [nameDistance_swap (p.name + j.name) p.name]
+  rw [nameDistance_swap (p.name + i.name + j.name) (p.name + j.name)]
+  simp
+  rw [Int.add_right_comm (p.acc.semitones + i.semitones + nameDistance p.name (p.name + i.name))
+                     j.semitones
+                     (nameDistance (p.name + i.name) (p.name + i.name + j.name))]
+  rw [Int.add_assoc (p.acc.semitones + i.semitones)
+                (nameDistance p.name (p.name + i.name))
+                (nameDistance (p.name + i.name) (p.name + i.name + j.name))]
+  rw [nameDistance_image p.name (p.name + i.name) (p.name + i.name + j.name)]
+  rw [Int.add_comm (p.acc.semitones + i.semitones) (nameDistance p.name (p.name + i.name + j.name))]
+  rw [Int.add_assoc (nameDistance p.name (p.name + i.name + j.name)) (p.acc.semitones + i.semitones) j.semitones]
+  rw [Int.add_comm (p.acc.semitones + j.semitones) (nameDistance p.name (p.name + j.name))]
+  rw [Int.add_assoc (nameDistance p.name (p.name + j.name)) (p.acc.semitones + j.semitones) i.semitones]
+  rw [Int.add_comm (nameDistance p.name (p.name + j.name)) (p.acc.semitones + j.semitones + i.semitones)]
+  rw [Int.add_assoc (p.acc.semitones + j.semitones + i.semitones) (nameDistance p.name (p.name + j.name)) (nameDistance (p.name + j.name) (p.name + i.name + j.name))]
+  rw [nameDistance_image p.name (p.name + j.name) (p.name + i.name + j.name)]
+  rw [Int.add_comm (nameDistance p.name (p.name + i.name + j.name)) (p.acc.semitones + i.semitones + j.semitones)]
+  rw [Int.add_right_comm p.acc.semitones j.semitones i.semitones]
 
 namespace Interval
 
@@ -388,3 +685,6 @@ structure Bar where
 
 def time22 := timeSignature 2 2
 def time44 := timeSignature 4 4
+
+#eval ((Pitch.new .c 4 + Interval.p5) - Interval.p5) == Pitch.new .c 4
+#eval ((Pitch.new .e 3 + Interval.ma3) - Interval.ma3) == Pitch.new .e 3
