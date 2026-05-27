@@ -2,21 +2,21 @@ import Prismriver.Repr.Classical
 
 namespace Prismriver
 
-variable ( P )
+variable ( P I )
 
 structure Instrument where
   name : String
   /-- Physical notes generated on a scale -/
-  scale : Scale P
+  scale : Scale P I
   /-- Generated harmonics relative to fundamental tone -/
-  harmonics : List scale.I := []
+  harmonics : List I := []
   lowest : Option P := .none
   highest : Option P := .none
 
 namespace Instrument
 
 /-- Sine wave generator with no harmonics -/
-def sine : Instrument (P := Int) := {
+def sine : Instrument (P := Int) (I := Int) := {
   name := "sine"
   scale := et12,
 }
@@ -31,14 +31,14 @@ def et12StringHarmonics : List Int := [
 ]
 
 /-- Equally-tempered acoustic grand piano -/
-def acoustic_grand : Instrument (P := Int) := {
+def acoustic_grand : Instrument (P := Int) (I := Int) := {
   name := "acoustic_grand"
   scale := et12,
   harmonics := et12StringHarmonics,
 }
 
 /-- Equally-tempered violin -/
-def violin : Instrument (P := Int) := {
+def violin : Instrument (P := Int) (I := Int) := {
   name := "violin"
   scale := et12,
   harmonics := et12StringHarmonics,
