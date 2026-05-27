@@ -1,6 +1,8 @@
 import Prismriver.Repr.Scale
 import Prismriver.Repr.Note
+
 namespace Prismriver.Classical
+
 /-- Accidental measured in terms of the number of semitones from natural. -/
 @[ext]
 structure Accidental where
@@ -44,6 +46,28 @@ instance : Sub Accidental where
   sub x y := { semitones := x.semitones - y.semitones }
 instance : SMul Int Accidental where
   smul n x := { semitones := n * x.semitones }
+
+theorem add_comm (i j : Accidental) : i + j = j + i := by
+  unfold HAdd.hAdd instHAdd Accidental.instAdd
+  simp
+  apply Int.add_comm
+
+theorem add_assoc (i j k : Accidental) : (i + j) + k = i + (j + k) := by
+  unfold HAdd.hAdd instHAdd Accidental.instAdd
+  simp
+  apply Int.add_assoc
+
+theorem sub_neg (i j : Accidental) : i - (-j) = i + j := by
+  unfold HAdd.hAdd instHAdd Accidental.instAdd
+  unfold HSub.hSub instHSub Accidental.instSub
+  simp
+  apply Int.sub_neg
+
+theorem add_mul (n m : Int) (i : Accidental) : (n + m) • i = n • i + m • i := by
+  unfold HAdd.hAdd instHAdd Accidental.instAdd
+  unfold HSMul.hSMul instHSMul Accidental.instSMulInt
+  simp
+  apply Int.add_mul
 
 end Accidental
 
@@ -258,9 +282,7 @@ theorem nameDistance_image (i j k : Int) : nameDistance i j + nameDistance j k =
   split
   . have : k ≤ i := Int.le_trans ‹k ≤ j› ‹j ≤ i›
     rewrite [if_pos this]
-    rewrite [nameDistanceAux_sub_eq_addNeg]
-    rewrite [nameDistanceAux_sub_eq_addNeg]
-    rewrite [nameDistanceAux_sub_eq_addNeg]
+    repeat rewrite [nameDistanceAux_sub_eq_addNeg]
     symm
     have hsplit : (i + -k).toNat = (j + -k).toNat + (i + -j).toNat := by omega
     rw [hsplit, nameDistanceAux_image]
@@ -270,9 +292,7 @@ theorem nameDistance_image (i j k : Int) : nameDistance i j + nameDistance j k =
     congr 1
     rw [intCast_key j k ‹k ≤ j›]
   . split
-    rw [nameDistanceAux_sub_eq_addNeg]
-    rw [nameDistanceAux_sub_eq_addNeg]
-    rw [nameDistanceAux_sub_eq_addNeg]
+    repeat rewrite [nameDistanceAux_sub_eq_addNeg]
     have hsplit : (i + -j).toNat = (k + -j).toNat + (i + -k).toNat := by omega
     symm
     rw [hsplit, nameDistanceAux_image]
@@ -423,7 +443,6 @@ example : toString ma2 = "M2" := rfl
 example : (toString p4) = "P4" := rfl
 example : (toString p5) = "P5" := rfl
 example : toString (p5 + Accidental.sharp) = "P5♯" := rfl
-
 
 end Interval
 
