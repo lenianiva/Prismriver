@@ -2,24 +2,40 @@ import Prismriver.Repr.Classical
 
 namespace Prismriver
 
-variable ( P I )
+variable ( P )
 
 structure Instrument where
   name : String
-  /-- Physical notes generated on a scale -/
-  scale : Scale P I
-  /-- Generated harmonics relative to fundamental tone -/
-  harmonics : List I := []
   lowest : Option P := .none
   highest : Option P := .none
 
 namespace Instrument
 
-/-- Sine wave generator with no harmonics -/
-def sine : Instrument (P := Int) (I := Int) := {
+/-- Sine wave generator -/
+def sine : Instrument (P := Int) := {
   name := "sine"
-  scale := et12,
 }
+
+open EqualTemp in
+/-- Equally-tempered acoustic grand piano -/
+def acoustic_grand : Instrument (P := Int) := {
+  name := "acoustic_grand"
+  lowest := .some (c4 - octave * 3 - 2),
+  highest := .some (c4 + octave * 4),
+}
+
+open EqualTemp in
+/-- Equally-tempered violin -/
+def violin : Instrument (P := Int) := {
+  name := "violin"
+  lowest := .some (c4 - 3),
+  highest := .some (c4 + octave * 3),
+}
+
+/-- Describes the dominant harmonics of an instrument -/
+class Harmonics ( I ) (inst : Instrument P) where
+  scale : Scale P I
+  harmonics : List I
 
 /-- Dominant harmonics for strings in ET12 tuning -/
 def et12StringHarmonics : List Int := [
@@ -30,16 +46,15 @@ def et12StringHarmonics : List Int := [
   12 * 2 + 7,
 ]
 
-/-- Equally-tempered acoustic grand piano -/
-def acoustic_grand : Instrument (P := Int) (I := Int) := {
-  name := "acoustic_grand"
-  scale := et12,
-  harmonics := et12StringHarmonics,
-}
+/-- Sine wave generator has no harmonics -/
+instance (n : Nat) : Harmonics Int Int sin where
+  scale := EqualTemp.scale n
+  harmonics := []
 
-/-- Equally-tempered violin -/
-def violin : Instrument (P := Int) (I := Int) := {
-  name := "violin"
-  scale := et12,
-  harmonics := et12StringHarmonics,
-}
+instance : Harmonics Int Int acoustic_grand where
+  scale := et12
+  harmonics := et12StringHarmonics
+
+instance : Harmonics Int Int violin where
+  scale := et12
+  harmonics := et12StringHarmonics
