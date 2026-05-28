@@ -110,6 +110,10 @@ theorem n_et_notes (n : Nat) : (scale n).pitches.length = n := by
 
 abbrev et12 := scale 12
 
+/-- MIDI C4 -/
+def c4 : Pitch := 60
+def octave : Interval := 12
+
 end EqualTemp
 
 export EqualTemp (et12)
