@@ -7,6 +7,17 @@ class Time (T D : Type) extends Add D, HAdd T D T, Neg D, SMul Int D, Ord T wher
   /- Maximum time within a bar -/
   bar : D := zero
 
+section
+
+set_option synthInstance.checkSynthOrder false
+
+variable { T D } [Time T D]
+instance : LT T := ltOfOrd
+instance : LE T := leOfOrd
+instance : Min T := minOfLe
+instance : Max T := maxOfLe
+end
+
 instance : Time Int Int where
   zero := 0
 
@@ -33,9 +44,7 @@ instance : ToExpr Rat where
 structure MeasuredTime where
   bar : Int := 0
   offset : Rat := 0
-  deriving Ord
-instance : LT MeasuredTime := ltOfOrd
-instance : LE MeasuredTime := leOfOrd
+  deriving Ord, BEq
 
 instance : ToString MeasuredTime where
   toString i := s!"{i.bar}.{i.offset}"

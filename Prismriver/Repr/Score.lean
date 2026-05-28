@@ -38,16 +38,17 @@ protected def addEvent { P T D } [Time T D] (score : Score P T D) (time : T) (ev
 structure Context where
   time : T
   -- List of all active events at time `T`
-  events : Std.TreeMap T (List (Event P D))
+  events : Std.TreeMap T (List (Event P D)) := .empty
 
 /-- Returns new events generated in this instant -/
 protected def Context.newEvents (context : Context P T D) : List (Event P D) :=
   context.events.getD context.time []
 
-/-- Chronological fold on a score -/
-protected def foldM [Monad M] (score : Score P T D) (m : α → Context P T D → M α) (init : α)
+/-- Chronological fold on a score. If `tail` is set to true, output a terminal instance with no events -/
+protected def foldM [Monad M] [BEq T] (score : Score P T D) (m : α → Context P T D → M α) (init : α)
+  (tail : Bool := true)
   : M α := do
-  let (a, _) ← score.events.foldlM (init := (init, Std.TreeMap.empty))
+  let (a, es) ← score.events.foldlM (init := (init, Std.TreeMap.empty))
     λ (acc, lingering) time events => do
       let lingering := lingering.filterMap λ t es =>
         let es := es.filter λ e =>
@@ -57,6 +58,17 @@ protected def foldM [Monad M] (score : Score P T D) (m : α → Context P T D �
       let context := { time, events := lingering.insert time events }
       let a ← m acc context
       pure (a, context.events)
+  if tail then if let .some t0 := es.minKey? then
+    -- Generate one last time slice
+    let maxT := es.foldl (init := t0) λ maxT time events =>
+      let maxET? := events.filterMap (·.duration?.map (time + ·)) |>.max?
+      match maxET? with
+      | .some t' => max maxT t'
+      | .none => maxT
+    if maxT != t0 then
+      -- Create one last temporal instance
+      let a' ← m a { time := maxT }
+      return a'
   return a
 
 /-- Combine two scores-/
