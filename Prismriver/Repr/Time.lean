@@ -2,15 +2,12 @@ import Lean.ToExpr
 
 namespace Prismriver
 
-class Time (I D : Type) extends Add D, HAdd I D I, Neg D, SMul Int D where
+class Time (T D : Type) extends Add D, HAdd T D T, Neg D, SMul Int D, Ord T where
   zero : D
   /- Maximum time within a bar -/
   bar : D := zero
 
 instance : Time Int Int where
-  zero := 0
-
-instance : Time Rat Rat where
   zero := 0
 
 instance : Ord Rat where
@@ -21,6 +18,9 @@ instance : Ord Rat where
       .lt
     else
       .gt
+
+instance : Time Rat Rat where
+  zero := 0
 
 open Lean in
 instance : ToExpr Rat where
