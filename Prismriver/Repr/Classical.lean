@@ -559,6 +559,13 @@ theorem pitch_interval_add_assoc (i j : Interval) (p : Pitch) : (p + i) + j = p 
   rw [Int.add_assoc (nameDistance p.name (p.name + i.name + j.name)) (p.acc.semitones + i.semitones) j.semitones]
   rw [h4]
 
+theorem pitch_interval_sub_comm (p : Pitch) (i j : Interval) : p - i - j = p - j - i := by
+  have h1 : p - i - j = p + -i + -j := by rfl
+  rw [h1]
+  have h2 : p - j - i = p + -j + -i := by rfl
+  rw [h2]
+  rw [pitch_interval_add_comm]
+
 
 /-- Interval with only a name distance in a particular key. Also known as a generic interval -/
 structure KeyInterval (root modus : Hep) where

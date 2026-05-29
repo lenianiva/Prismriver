@@ -14,11 +14,6 @@ inductive TransposeAction (P I) where
   /-- p → a - (p - a) - I -/
   | sr (a : P) (i : I)
 
-instance : SMul (TransposeAction Pitch Interval) Pitch where
-  smul t p := match t with
-    | .r i => p + i
-    | .sr a i => a - (p - a) - i
-
 def rInterval (i : Interval) (p : Pitch) : Pitch :=
  let a : Pitch := p + i
  a
@@ -26,6 +21,11 @@ def rInterval (i : Interval) (p : Pitch) : Pitch :=
 def srInterval (i : Interval) (a : Pitch) (p : Pitch) : Pitch :=
   let b : Pitch := a - (p - a) - i
   b
+
+instance : SMul (TransposeAction Pitch Interval) Pitch where
+  smul t p := match t with
+    | .r i => rInterval i p
+    | .sr a i => srInterval i a p
 
 theorem add_Interval (i j : Interval) : i.name + j.name = (i + j).name := by
   unfold Interval.name
@@ -135,10 +135,13 @@ theorem sub_Pitch_Pitch_semitones (p q : Pitch) :
 
 theorem sub_Pitch_Interval_name (p : Pitch) (i : Interval) :
     (p - i).name = p.name + -i.name := rfl
+
 theorem add_Pitch_Interval_name (p : Pitch) (i : Interval) :
     (p + i).name = p.name + i.name := rfl
+
 theorem sub_Pitch_Pitch_name (p q : Pitch) :
     (p - q).name = p.name - q.name := rfl
+
 theorem sub_Accidental_semitones (x y : Accidental) :
     (x - y).semitones = x.semitones - y.semitones := rfl
 
@@ -170,3 +173,85 @@ theorem srInterval_srInterval (i j : Interval) (p a : Pitch) : srInterval i a (s
   rw [h2]
   rw [pitch_interval_add_assoc]
   rfl
+
+theorem pitch_sub_pitch_sub_self (a b : Pitch) : a - (a - b) = b := by
+  apply Pitch.ext
+  simp only [sub_Pitch_Interval_name, sub_Pitch_Pitch_name]
+  omega
+  apply Accidental.ext
+  simp only [sub_Pitch_Interval_acc, sub_Pitch_Pitch_name, sub_Pitch_Pitch_semitones, sub_Accidental_semitones]
+  have hname : a.name + -(a.name - b.name) = b.name := by omega
+  rw [hname]
+  rw [nameDistance_swap b.name a.name]
+  omega
+
+theorem pitch_sub_add_pitch_sub (a b p : Pitch) : (a - b) + (p - a) = p - b := by
+  apply Interval.ext
+  unfold HAdd.hAdd instHAdd Add.add Interval.instAdd
+  simp only [sub_Pitch_Pitch_name]
+  omega
+  unfold HAdd.hAdd instHAdd Add.add Interval.instAdd
+  simp only [sub_Pitch_Pitch_semitones, sub_Accidental_semitones]
+  rw [← nameDistance_image p.name a.name b.name]
+  omega
+
+theorem srInterval_change_center
+    (j : Interval) (a b p : Pitch) :
+    srInterval j b p = srInterval ((a - b) + (a - b) + j) a p := by
+    apply Pitch.ext
+    unfold srInterval
+    simp only [HSub.hSub, Neg.neg, HAdd.hAdd, Add.add]
+    grind
+    unfold srInterval
+    simp
+    rw [hSub_Interval_sum (a - (p - a)) ((a - b) + (a - b)) j]
+    have : (a - (p - a) - (a - b + (a - b)) - j).acc = (a - (p - a) - (a - b + (a - b)) - j).acc := by grind
+    rw [this]
+    rw [pitch_interval_sub_comm a (p - a) (a - b + (a-b))]
+    rw [hSub_Interval_sum a (a - b) (a - b)]
+    rw [pitch_sub_pitch_sub_self a b]
+    rw [pitch_interval_sub_comm b (a - b) (p - a)]
+    rw [← hSub_Interval_sum b (p - a) (a - b)]
+    have : (b - (p - a + (a - b)) - j).acc = (b - (p - b) - j).acc := by
+      rw [Interval.add_comm (p - a) (a - b)]
+      rw [pitch_sub_add_pitch_sub a b p]
+    rw [this]
+
+theorem srInterval_srInterval_general (i j : Interval) (a b p : Pitch) :
+  srInterval i a (srInterval j b p) = rInterval ((a - b) + (a - b) + (j - i)) p := by
+  rw [srInterval_change_center j a b p]
+  rw [srInterval_srInterval]
+  unfold rInterval
+  simp
+  unfold HAdd.hAdd instHAddPitchInterval instHAdd Add.add Interval.instAdd
+  simp
+  unfold HSub.hSub instHSubPitchOutParamInterval instHSub Sub.sub Interval.instSub
+  simp
+  grind
+
+instance : Mul (TransposeAction Pitch Interval) where
+  mul
+  | .r i, .r j => .r (i + j)
+  | .r i, .sr a j => .sr a (j - i)
+  | .sr a i, .r j => .sr a (i + j)
+  | .sr a i, .sr b j => .r ((a - b) + (a - b) + (j - i))
+
+theorem transposeAction_mul_smul (t1 t2 : TransposeAction Pitch Interval) (p : Pitch) :
+  t1 • (t2 • p) = (t1 * t2) • p := by
+  cases t1 <;> cases t2 <;> simp [HMul.hMul, Mul.mul]
+  unfold HSMul.hSMul instHSMul SMul.smul instSMulTransposeActionPitchInterval
+  simp
+  rw [rInterval_rInterval]
+  unfold HSMul.hSMul instHSMul SMul.smul instSMulTransposeActionPitchInterval
+  simp
+  rw [rInterval_srInterval]
+  unfold HSMul.hSMul instHSMul SMul.smul instSMulTransposeActionPitchInterval
+  simp
+  rw [srInterval_rInterval]
+  unfold HSMul.hSMul instHSMul SMul.smul instSMulTransposeActionPitchInterval
+  simp
+  rename_i j
+  rename_i b
+  rename_i i
+  rename_i a
+  rw [srInterval_srInterval_general]
