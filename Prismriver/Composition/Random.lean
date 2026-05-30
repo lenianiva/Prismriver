@@ -25,7 +25,7 @@ def randomWalk { Gen : Type } [RandomGen Gen] (g : Gen) (n : Nat) (last : Pitch)
     λ _i _h (li, g) => do
       let (i_interval, g) := randNat g 0 (permitted.length - 1)
       let interval := permitted[i_interval]!
-      let pitch := li.head! + interval
+      let pitch := interval • li.head!
       pure (pitch :: li, g)
   return li
 
