@@ -38,17 +38,26 @@ end Xml
 
 open Prismriver.Xml
 
+protected def Pitch.toMusicXML (pitch : Classical.Pitch) : Xml.Element :=
+  let content := #[
+    .Element (single "step" $ toString pitch.hep),
+    .Element (single "octave" $ toString pitch.octave),
+  ]
+  let ⟨acc⟩ := pitch.acc
+  let content := if acc != 0 then
+      content ++ [Xml.Content.Element (single "alter" $ toString acc)]
+    else
+      content
+  .Element
+    (name := "pitch")
+    (attributes := .empty)
+    (content := content)
+
+
 /-- Convert a note -/
 protected def Note.toMusicXML (note : Classical.Note) : Xml.Element :=
   let content := #[
-    .Element (.Element
-      (name := "pitch")
-      (attributes := .empty)
-      (content := #[
-        .Element (single "step" $ toString note.pitch.hep),
-        .Element (single "octave" $ toString note.pitch.octave),
-      ])
-    ),
+    .Element (Pitch.toMusicXML note.pitch),
     .Element (single "duration" $ toString note.duration),
     .Element (single "type" "whole"),
   ]
