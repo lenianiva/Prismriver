@@ -44,8 +44,8 @@ instance : Neg Accidental where
   neg x := { semitones := -x.semitones }
 instance : Sub Accidental where
   sub x y := { semitones := x.semitones - y.semitones }
-instance : SMul Int Accidental where
-  smul n x := { semitones := n * x.semitones }
+instance : HMul Int Accidental Accidental where
+  hMul n x := { semitones := n * x.semitones }
 
 theorem add_comm (i j : Accidental) : i + j = j + i := by
   unfold HAdd.hAdd instHAdd Accidental.instAdd
@@ -63,11 +63,14 @@ theorem sub_neg (i j : Accidental) : i - (-j) = i + j := by
   simp
   apply Int.sub_neg
 
-theorem add_mul (n m : Int) (i : Accidental) : (n + m) • i = n • i + m • i := by
+theorem add_mul (n m : Int) (i : Accidental) : (n + m) * i = n * i + m * i := by
   unfold HAdd.hAdd instHAdd Accidental.instAdd
-  unfold HSMul.hSMul instHSMul Accidental.instSMulInt
+  unfold HMul.hMul Accidental.instHMulInt
   simp
   apply Int.add_mul
+
+theorem sub_Accidental_semitones (x y : Accidental) :
+    (x - y).semitones = x.semitones - y.semitones := rfl
 
 end Accidental
 
@@ -341,12 +344,23 @@ structure Interval where
 
 namespace Interval
 
+@[simp, reducible]
+protected def zero : Interval := ⟨0, 0⟩
+
 instance : Add Interval where
   add x y := { name := x.name + y.name, semitones := x.semitones + y.semitones }
 instance : Sub Interval where
   sub x y := { name := x.name - y.name, semitones := x.semitones - y.semitones }
-instance : SMul Int Interval where
-  smul n x := { name := n * x.name, semitones := n * x.semitones }
+instance : HMul Int Interval Interval where
+  hMul n x := { name := n * x.name, semitones := n * x.semitones }
+
+theorem add_name (i j : Interval) : i.name + j.name = (i + j).name := by
+  unfold Interval.name
+  rfl
+
+theorem add_semitones (i j : Interval) : i.semitones + j.semitones = (i + j).semitones := by
+  unfold Interval.semitones
+  rfl
 
 instance : Neg Interval where
   neg i := { name := -i.name, semitones := -i.semitones }
@@ -364,6 +378,33 @@ theorem add_assoc (i j k: Interval) : (i + j) + k = i + (j + k) := by
   constructor
   rw [Int.add_assoc]
   rw [Int.add_assoc]
+
+theorem add_left_neg (i : Interval) : (-i) + i = Interval.zero := by
+  unfold HAdd.hAdd instHAdd Add.add Interval.instAdd
+  simp
+  unfold Neg.neg Interval.instNeg
+  simp
+  constructor
+  omega
+  omega
+
+theorem sub_neg (i j : Interval) : i - (-j) = i + j := by
+  unfold HSub.hSub instHSub Sub.sub instSub
+  apply Interval.ext
+  simp
+  unfold HAdd.hAdd instHAdd Add.add instAdd
+  simp
+  rw [Int.sub_eq_add_neg]
+  simp
+  unfold Neg.neg Int.instNegInt instNeg
+  simp
+  grind
+  simp
+  rw [Int.sub_eq_add_neg]
+  have : i.semitones + -(-j).semitones = (i + -(-j)).semitones := by rfl
+  rw [this]
+  unfold Neg.neg instNeg
+  simp
 
 theorem neg_neg_sub (i j : Interval) : - (j - i) = -j + i := by
   have : j - i = j + -i := by
@@ -446,15 +487,15 @@ example : toString (p5 + Accidental.sharp) = "P5♯" := rfl
 
 end Interval
 
-instance : HSub Pitch Pitch (outParam Interval) where
-  hSub p1 p2 :=
+instance : HDiv Pitch Pitch (outParam Interval) where
+  hDiv p1 p2 :=
     let Δname := nameDistance p1.name p2.name
     let Δacc := p1.acc - p2.acc
     { name := p1.name - p2.name, semitones := Δname + Δacc.semitones }
 
 /-- Group action of interval group on the set of pitches -/
-instance : HAdd Pitch Interval Pitch where
-  hAdd p i :=
+instance : HSMul Interval Pitch Pitch where
+  hSMul i p :=
     let name := p.name + i.name
     -- Semitones accounted for in the name with no accidentals
     let Δsemitones := nameDistance name p.name
@@ -463,39 +504,34 @@ instance : HAdd Pitch Interval Pitch where
 
 open Interval in
 def majorTriad (p : Pitch) : List Pitch := [
-    p, p + ma3, p + p5
+    p, ma3 • p, p5 • p
   ]
 open Interval in
 def minorTriad (p : Pitch) : List Pitch := [
-    p, p + mi3, p + p5
+    p, mi3 • p, p5 • p
   ]
+example : Interval.octave • (Pitch.new .c 4) = (Pitch.new .c 5) := rfl
+example : Interval.p5 • (Pitch.new .c 4) = (Pitch.new .g 4) := rfl
+example : Interval.p5 • (Pitch.new .b 5) = (Pitch.new .f 6 .sharp) := rfl
+example : (Pitch.new .e 3) / (Pitch.new .c 3) = Interval.ma3 := rfl
+example : (-Interval.p5) • (Interval.p5 • Pitch.new .c 4) = Pitch.new .c 4 := rfl
+example : (-Interval.ma3) • (Interval.ma3 • Pitch.new .e 3) = Pitch.new .e 3 := rfl
 
-instance : HSub Pitch Interval Pitch where
-  hSub p a :=
-  let name := p.name + -(a.name)
-  let Δsemitones := nameDistance name p.name
-  { name, acc := { semitones := (p.acc.semitones - a.semitones) - Δsemitones} }
+theorem smul_Pitch_Interval_acc (p : Pitch) (i : Interval) :
+    (i • p).acc = { semitones := p.acc.semitones + i.semitones - nameDistance (p.name + i.name) p.name }
+  := rfl
 
-instance : HAdd Interval Int Interval where
-  hAdd i n :=
-  let semiChange := nameDistance (i.name + n) i.name
-  {name := i.name + n, semitones := i.semitones - semiChange }
+theorem div_Pitch_Pitch_semitones (p q : Pitch) :
+    (p / q).semitones = nameDistance p.name q.name + (p.acc - q.acc).semitones := rfl
 
-instance : HSub Interval Int Interval where
-  hSub i n :=
-  let semiChange := nameDistance (i.name + -(n)) i.name
-  {name := i.name + -(n), semitones := i.semitones + n - semiChange }
+theorem smul_Pitch_Interval_name (p : Pitch) (i : Interval) :
+    (i • p).name = p.name + i.name := rfl
 
-instance : Neg Pitch where
-  neg p := { name := -p.name, acc := { semitones := -p.acc.semitones } }
+theorem div_Pitch_Pitch_name (p q : Pitch) :
+    (p / q).name = p.name - q.name := rfl
 
-instance : Add Pitch where
-  add x y := { name := x.name + y.name, acc := {semitones := x.acc.semitones + y.acc.semitones }}
-instance : Sub Pitch where
-  sub x y := { name := x.name - y.name, acc := {semitones := x.acc.semitones - y.acc.semitones }}
-
-theorem pitch_interval_add_comm (i j : Interval) (p : Pitch) : p + j + i = p + i + j := by
-  unfold HAdd.hAdd instHAddPitchInterval
+theorem pitch_interval_add_comm (i j : Interval) (p : Pitch) : i • (j • p) = j • (i • p):= by
+  unfold HSMul.hSMul instHSMulIntervalPitch
   simp only [Pitch.mk.injEq, Accidental.mk.injEq]
   constructor
   rw [Int.add_right_comm]
@@ -527,17 +563,38 @@ theorem pitch_interval_add_comm (i j : Interval) (p : Pitch) : p + j + i = p + i
   rw [Int.add_comm (nameDistance p.name (p.name + i.name + j.name)) (p.acc.semitones + i.semitones + j.semitones)]
   rw [Int.add_right_comm p.acc.semitones j.semitones i.semitones]
 
-theorem pitch_interval_add_assoc (i j : Interval) (p : Pitch) : (p + i) + j = p + (i + j) := by
-  unfold HAdd.hAdd instHAddPitchInterval Interval.instAdd instHAdd
-  unfold Add.add Int.instAdd
+theorem pitch_interval_add_assoc (i j : Interval) (p : Pitch) : j • (i • p) = (i + j) • p := by
+  unfold HSMul.hSMul instHSMulIntervalPitch
+  unfold Interval.instAdd instHAdd
   simp only [Pitch.mk.injEq, Accidental.mk.injEq]
   constructor
-  simp
   rw [Int.add_assoc]
   rw [nameDistance_swap]
   have h2 : (p.name + (i.name + j.name)) = (p.name + i.name + j.name) := by omega
-  sorry
-
+  rw [nameDistance_swap (p.name + i.name + j.name) (p.name + i.name)]
+  simp
+  rw [h2]
+  rw [nameDistance_swap (p.name+i.name+j.name) (p.name)]
+  simp
+  rw [Int.add_right_comm]
+  symm
+  rw [Int.add_comm]
+  symm
+  have h3 : nameDistance p.name (p.name + i.name) + nameDistance (p.name + i.name) (p.name + i.name + j.name) = nameDistance p.name (p.name + i.name + j.name) := by
+    rw [nameDistance_image p.name (p.name + i.name) (p.name + i.name + j.name)]
+  have h4 : p.acc.semitones + i.semitones + j.semitones = (p.acc.semitones + (i.semitones + j.semitones)) := by
+    omega
+  rw [Int.add_right_comm]
+  rw [Int.add_right_comm (p.acc.semitones + i.semitones + nameDistance p.name (p.name + i.name))
+                     j.semitones
+                     (nameDistance (p.name + i.name) (p.name + i.name + j.name))]
+  rw [Int.add_assoc (p.acc.semitones + i.semitones)
+                (nameDistance p.name (p.name + i.name))
+                (nameDistance (p.name + i.name) (p.name + i.name + j.name))]
+  rw [h3]
+  rw [Int.add_comm (p.acc.semitones + i.semitones) (nameDistance p.name (p.name + i.name + j.name))]
+  rw [Int.add_assoc (nameDistance p.name (p.name + i.name + j.name)) (p.acc.semitones + i.semitones) j.semitones]
+  rw [h4]
 
 /-- Interval with only a name distance in a particular key. Also known as a generic interval -/
 structure KeyInterval (root modus : Hep) where
@@ -614,7 +671,7 @@ end KeyInterval
 instance diatonic (root : Tone) (modus : Hep) : Scale Pitch Interval where
   name := s!"{root} {modus.modus}"
 
-  zero := ⟨0, 0⟩
+  zero := Interval.zero
 
   fundamental := Interval.octave
   pitches := List.finRange 7 |>.map λ i =>
@@ -627,48 +684,62 @@ instance diatonic (root : Tone) (modus : Hep) : Scale Pitch Interval where
       |>.take i.toNat |>.sum
     { name, acc := ⟨shiftModus - shiftNominal + root.acc.semitones⟩ }
 
-  neg_add _ := by
-    unfold HAdd.hAdd instHAdd Add.add Interval.instAdd
-    simp
-    unfold Neg.neg Interval.instNeg
-    simp
-    constructor
-    omega
-    omega
   add_zero := by
-    unfold HAdd.hAdd instHAdd Add.add Interval.instAdd
+    unfold HAdd.hAdd instHAdd Add.add Interval.instAdd Interval.zero
     simp
   add_comm := Interval.add_comm
+  add_left_neg := Interval.add_left_neg
+  add_right_neg i := by
+    rw [Interval.add_comm]
+    apply Interval.add_left_neg
   add_assoc := Interval.add_assoc
   zero_mul _ := by
-    unfold HSMul.hSMul Interval.instSMulInt instHSMul
+    unfold HMul.hMul Interval.instHMulInt instHMul
     apply Interval.ext
-    simp
-    unfold SMul.smul
-    simp
-  neg_mul _ _n := by
-    unfold HSMul.hSMul Interval.instSMulInt instHSMul
+    . simp
+      apply Int.zero_mul
+    . simp
+      apply Int.zero_mul
+  neg_sub i j := by
+    rw [Interval.neg_neg_sub]
+    rw [Interval.add_comm]
+    rfl
+  sub_neg i j := by
+    rw [Interval.sub_neg]
+  sub_eq_add_neg i j := by
+    apply Interval.ext
+    rfl
+    rfl
+  neg_neg i := by
+    apply Interval.ext
+    unfold Neg.neg Interval.instNeg
+    grind
+    unfold Neg.neg Interval.instNeg
+    grind
+  neg_add i := by
+    intro j
+    rw [Interval.neg_add]
+  neg_mul x _n := by
+    unfold HMul.hMul Interval.instHMulInt instHMul
     simp
     apply Interval.ext
-    simp only [Neg.neg]
-    rename_i x
-    exact Int.neg_mul _n x.name
-    simp only [Neg.neg]
-    rename_i x
-    exact Int.neg_mul _n x.semitones
+    . simp only [Neg.neg]
+      exact Int.neg_mul _n x.name
+    . simp only [Neg.neg]
+      exact Int.neg_mul _n x.semitones
   mul_distrib := by
-    unfold HSMul.hSMul Interval.instSMulInt instHSMul
+    unfold HMul.hMul Interval.instHMulInt instHMul
     intro n m i
     simp
     apply Interval.ext
-    unfold HAdd.hAdd instHAdd Add.add Int.instAdd Interval.instAdd
-    simp
-    rw [Int.add_mul]
-    unfold HAdd.hAdd instHAdd Add.add Int.instAdd Interval.instAdd
-    simp
-    rw [Int.add_mul]
-  add_pitch_zero _ := by
-    unfold HAdd.hAdd instHAddPitchInterval
+    . unfold HAdd.hAdd instHAdd Add.add Int.instAdd Interval.instAdd
+      simp
+      apply Int.add_mul
+    . unfold HAdd.hAdd instHAdd Add.add Int.instAdd Interval.instAdd
+      simp
+      apply Int.add_mul
+  smul_zero _ := by
+    unfold HSMul.hSMul instHSMulIntervalPitch Interval.zero
     simp
     apply Pitch.ext
     constructor
@@ -676,7 +747,38 @@ instance diatonic (root : Tone) (modus : Hep) : Scale Pitch Interval where
     rewrite [nameDistance_refl]
     apply Accidental.ext
     simp
-  add_pitch_assoc p i j := pitch_interval_add_assoc i j p
+  smul_assoc p i j := pitch_interval_add_assoc i j p
+  smul_div p q := by
+    unfold HDiv.hDiv instHDivPitchOutParamInterval
+    unfold HSMul.hSMul instHSMulIntervalPitch
+    simp
+    apply Pitch.ext
+    simp
+    omega
+    apply Accidental.ext
+    simp
+    rw [Int.add_comm]
+    have h1 : p.name + (q.name - p.name) = q.name := by omega
+    rw [h1]
+    have h2 : nameDistance q.name p.name + (q.acc - p.acc).semitones + p.acc.semitones - nameDistance q.name p.name = (q.acc - p.acc).semitones + p.acc.semitones + nameDistance q.name p.name - nameDistance q.name p.name := by omega
+    rw [h2]
+    have h3 : (q.acc - p.acc).semitones = q.acc.semitones - p.acc.semitones := by rfl
+    rw [h3]
+    have h4 : q.acc.semitones - p.acc.semitones + p.acc.semitones = q.acc.semitones := by omega
+    rw [h4]
+    grind
+  div_smul_self i p := by
+   unfold HDiv.hDiv instHDivPitchOutParamInterval
+   unfold HSMul.hSMul instHSMulIntervalPitch
+   simp
+   apply Interval.ext
+   simp
+   rw [Int.add_comm]
+   rw [Int.add_sub_cancel]
+   simp
+   rw [Int.add_comm]
+   rw [Accidental.sub_Accidental_semitones]
+   grind
 
 /-- Equal temperament tuning of diatonic scales -/
 instance equalTempTuning root modus : Tuning Pitch EqualTemp.Pitch
@@ -689,13 +791,6 @@ instance equalTempTuning root modus : Tuning Pitch EqualTemp.Pitch
     let total := shiftNominal + pitch.acc.semitones + pitch.octave * 12
     total
 
-example : (Pitch.new .c 4) + Interval.octave = (Pitch.new .c 5) := rfl
-example : (Pitch.new .c 4) + Interval.p5 = (Pitch.new .g 4) := rfl
-example : (Pitch.new .b 5) + Interval.p5 = (Pitch.new .f 6 .sharp) := rfl
-example : (Pitch.new .e 3) - (Pitch.new .c 3) = Interval.ma3 := rfl
 example : (diatonic ⟨.d, .natural⟩ .a).pitches = [.new .d 0, .new .e 0, .new .f 0, .new .g 0, .new .a 0, .new .b 0 .flat, .new .c 1] := rfl
 
 abbrev Note := @Prismriver.Note Pitch MeasuredTime
-
-example : ((Pitch.new .c 4 + Interval.p5) - Interval.p5) = Pitch.new .c 4 := rfl
-example : ((Pitch.new .e 3 + Interval.ma3) - Interval.ma3) = Pitch.new .e 3 := rfl
