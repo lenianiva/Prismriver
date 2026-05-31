@@ -42,8 +42,6 @@ def ZMod12ToPitch : ZMod 12 → Pitch
   | 10 => Pitch.new .a 0 .sharp
   | 11 => Pitch.new .b 0
 
-#eval Pitch.new .c 0
-
 instance : ToString Triad where
   toString t :=
     let pitch := ZMod12ToPitch t.1
