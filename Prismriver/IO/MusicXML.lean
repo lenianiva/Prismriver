@@ -61,7 +61,7 @@ protected def Note.toMusicXML (note : Classical.Note) : Xml.Element :=
 protected def Score.toMusicXML (score : Classical.Score) (metadata : Metadata := {})
   : Xml.Element :=
   let measuresM : StateM OutputState (Array Xml.Element) := score.foldM (P := Classical.Pitch)
-    (init := #[]) (m := λ acc { time, events } => do
+    (init := #[]) (m := λ acc context@{ time, .. } => do
     let σ ← get
     let newMeasure ← if σ.time.bar ≠ time.bar then
         let (σ', measureNotes) := σ.packMeasure time
@@ -79,8 +79,7 @@ protected def Score.toMusicXML (score : Classical.Score) (metadata : Metadata :=
           ])
         pure #[measure]
       else
-        --
-        let newNotes := events.filterMap λ
+        let newNotes := context.newEvents.filterMap λ
           | .note note _instrument? =>
             .some note
           | _ => .none
