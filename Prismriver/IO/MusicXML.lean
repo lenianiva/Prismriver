@@ -16,6 +16,14 @@ private def single (name s : String) : Xml.Element := .Element
     (attributes := .empty)
     (content := #[.Character s])
 
+protected def Metadata.toWorkElement (metadata : Metadata) : Xml.Element :=
+  let content := #[
+    .Element (single "work-title" $ metadata.title),
+  ]
+  .Element
+    (name := "work")
+    (attributes := .empty)
+    (content := content)
 
 protected def Part.toMusicXML (_part : Classical.Part) (id : PartId) : Xml.Element :=
   let midiInstrument := .Element
@@ -56,6 +64,7 @@ protected def Note.toMusicXML (note : Classical.Note) : Xml.Element :=
     .Element (Pitch.toMusicXML note.pitch),
     .Element (single "duration" $ toString duration),
     .Element (single "type" "quarter"),
+    .Element (single "voice" $ toString 1),
   ]
   .Element
     (name := "note")
@@ -114,11 +123,7 @@ protected def Score.toMusicXML (score : Classical.Score) (metadata : Metadata :=
     let elem := .Element (part.toMusicXML id)
     acc ++ #[elem]
   let rootContent : Array Xml.Content := #[
-    Xml.Content.Element (.Element
-      (name := "movement-title")
-      (attributes := .empty)
-      (content := #[.Character metadata.title])
-    ),
+    Xml.Content.Element (metadata.toWorkElement),
     .Element (.Element
       (name := "part-list")
       (attributes := .empty)
