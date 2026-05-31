@@ -565,36 +565,32 @@ theorem pitch_interval_add_comm (i j : Interval) (p : Pitch) : i • (j • p) =
 
 theorem pitch_interval_add_assoc (i j : Interval) (p : Pitch) : j • (i • p) = (i + j) • p := by
   unfold HSMul.hSMul instHSMulIntervalPitch
-  unfold Interval.instAdd instHAdd
+  unfold Interval.instAdd
   simp only [Pitch.mk.injEq, Accidental.mk.injEq]
   constructor
-  rw [Int.add_assoc]
-  rw [nameDistance_swap]
-  have h2 : (p.name + (i.name + j.name)) = (p.name + i.name + j.name) := by omega
+  . apply Int.add_assoc
+  rw [nameDistance_swap, ←Interval.add_semitones]
   rw [nameDistance_swap (p.name + i.name + j.name) (p.name + i.name)]
   simp
-  rw [h2]
-  rw [nameDistance_swap (p.name+i.name+j.name) (p.name)]
+  conv =>
+    rhs
+    rewrite [Int.sub_eq_add_neg]
+    rewrite [← nameDistance_swap]
+  conv =>
+    lhs
+    lhs
+    rewrite [
+      Int.add_assoc _ _ j.semitones,
+      Int.add_comm _ j.semitones,
+      ← Int.add_assoc _ j.semitones _,
+    ]
+    lhs
+    rewrite [Int.add_assoc]
+  conv =>
+    lhs
+    rewrite [Int.add_assoc]
   simp
-  rw [Int.add_right_comm]
-  symm
-  rw [Int.add_comm]
-  symm
-  have h3 : nameDistance p.name (p.name + i.name) + nameDistance (p.name + i.name) (p.name + i.name + j.name) = nameDistance p.name (p.name + i.name + j.name) := by
-    rw [nameDistance_image p.name (p.name + i.name) (p.name + i.name + j.name)]
-  have h4 : p.acc.semitones + i.semitones + j.semitones = (p.acc.semitones + (i.semitones + j.semitones)) := by
-    omega
-  rw [Int.add_right_comm]
-  rw [Int.add_right_comm (p.acc.semitones + i.semitones + nameDistance p.name (p.name + i.name))
-                     j.semitones
-                     (nameDistance (p.name + i.name) (p.name + i.name + j.name))]
-  rw [Int.add_assoc (p.acc.semitones + i.semitones)
-                (nameDistance p.name (p.name + i.name))
-                (nameDistance (p.name + i.name) (p.name + i.name + j.name))]
-  rw [h3]
-  rw [Int.add_comm (p.acc.semitones + i.semitones) (nameDistance p.name (p.name + i.name + j.name))]
-  rw [Int.add_assoc (nameDistance p.name (p.name + i.name + j.name)) (p.acc.semitones + i.semitones) j.semitones]
-  rw [h4]
+  rw [nameDistance_image, ← Interval.add_name, Int.add_assoc]
 
 /-- Interval with only a name distance in a particular key. Also known as a generic interval -/
 structure KeyInterval (root modus : Hep) where
