@@ -32,6 +32,7 @@ instance : Ord Rat where
 
 instance : Time Rat where
   zero := 0
+  bar := 1
 
 open Lean in
 instance : ToExpr Rat where
@@ -78,6 +79,10 @@ instance : Neg MeasuredTime where
   neg t := ⟨-t.bars, -t.offset⟩
 instance : SMul Int MeasuredTime where
   smul n t := ⟨n * t.bars, n * t.offset⟩
+instance : ShiftRight MeasuredTime where
+  shiftRight t s := match s.bars with
+    | 0 => ⟨t.bars, t.offset + s.offset⟩
+    | b => ⟨t.bars + s.bars, s.offset⟩
 
 instance : Time MeasuredTime where
   zero := ⟨0, 0⟩

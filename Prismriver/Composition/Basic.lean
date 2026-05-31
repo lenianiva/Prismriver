@@ -18,14 +18,14 @@ section Monad
 
 variable { M } [Monad M]
 
-def addPart (partId : PartId) (part : Part P) : CompositionT P T M Unit := do
+def addPart (partId : PartId) (part : Part) : CompositionT P T M Unit := do
   modify λ state => { state with score := { state.score with
     parts := state.score.parts.insert partId part
   }}
 
 /-- Move the current time forward -/
-def move (d : T) : CompositionT P T M Unit := do
-  modify λ state => { state with time := state.time + d }
+def move [ShiftRight T] (d : T) : CompositionT P T M Unit := do
+  modify λ state => { state with time := state.time >>> d }
 
 /-- Insert a new event at the current time -/
 def addEvent (event : Event P T)
@@ -33,7 +33,7 @@ def addEvent (event : Event P T)
   modify λ state => { state with score := state.score.addEvent state.time event }
 
 /-- Insert a new note at the current time -/
-def addNote (note : Note P T) (partId? : Option PartId := .none) (still : Bool := false)
+def addNote [ShiftRight T] (note : Note P T) (partId? : Option PartId := .none) (still : Bool := false)
   : CompositionT P T M Unit := do
   addEvent $ Event.note note partId?
   if !still then
