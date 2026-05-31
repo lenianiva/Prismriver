@@ -2,12 +2,23 @@ import Lean.ToExpr
 
 namespace Prismriver
 
-class Time (T D : Type) extends Add D, HAdd T D T, Neg D, SMul Int D, Ord T where
-  zero : D
+class Time (T : Type) extends Add T, Sub T, Neg T, SMul Int T, Ord T where
+  zero : T
   /- Maximum time within a bar -/
-  bar : D := zero
+  bar : T := zero
 
-instance : Time Int Int where
+section
+
+set_option synthInstance.checkSynthOrder false
+
+variable { T } [Time T]
+instance : LT T := ltOfOrd
+instance : LE T := leOfOrd
+instance : Min T := minOfLe
+instance : Max T := maxOfLe
+end
+
+instance : Time Int where
   zero := 0
 
 instance : Ord Rat where
@@ -19,7 +30,7 @@ instance : Ord Rat where
     else
       .gt
 
-instance : Time Rat Rat where
+instance : Time Rat where
   zero := 0
 
 open Lean in
@@ -31,30 +42,43 @@ instance : ToExpr Rat where
   toTypeExpr : Expr := mkConst ``Rat
 
 structure MeasuredTime where
-  bar : Int := 0
+  bars : Int := 0
   offset : Rat := 0
-  deriving Ord
+  deriving Ord, BEq
 instance : LT MeasuredTime := ltOfOrd
 instance : LE MeasuredTime := leOfOrd
+instance : Min MeasuredTime := minOfLe
+instance : Max MeasuredTime := maxOfLe
+
+-- Check lexicographical ordering
+example : (⟨1, 2⟩ : MeasuredTime) < (⟨2, 1⟩ : MeasuredTime) := by decide
+
+/-- one bar -/
+protected def MeasuredTime.bar : MeasuredTime := ⟨1, 0⟩
+
+instance : Coe Rat MeasuredTime where
+  coe offset := ⟨0, offset⟩
 
 instance : ToString MeasuredTime where
-  toString i := s!"{i.bar}.{i.offset}"
+  toString i := s!"{i.bars}.{i.offset}"
 
 open Lean in
 instance : ToExpr MeasuredTime where
   toExpr t :=
-    let bar := toExpr t.bar
+    let bars := toExpr t.bars
     let offset := toExpr t.offset
-    mkAppN (mkConst ``MeasuredTime.mk) #[bar, offset]
+    mkAppN (mkConst ``MeasuredTime.mk) #[bars, offset]
   toTypeExpr : Expr := mkConst ``MeasuredTime
 
-instance timeSignature (top bot : Nat)
-  : Time MeasuredTime Rat where
-  zero := 0
-  bar := mkRat top bot
-  hAdd t d := { t with offset := t.offset + d }
+instance : Add MeasuredTime where
+  add t1 t2 := ⟨t1.bars + t2.bars, t1.offset + t2.offset⟩
+instance : Sub MeasuredTime where
+  sub t1 t2 := ⟨t1.bars - t2.bars, t1.offset - t2.offset⟩
+instance : Neg MeasuredTime where
+  neg t := ⟨-t.bars, -t.offset⟩
+instance : SMul Int MeasuredTime where
+  smul n t := ⟨n * t.bars, n * t.offset⟩
 
-instance : Time MeasuredTime Rat where
-  zero := 0
-  bar := mkRat 4 4
-  hAdd t d := { t with offset := t.offset + d }
+instance : Time MeasuredTime where
+  zero := ⟨0, 0⟩
+  bar := ⟨1, 0⟩

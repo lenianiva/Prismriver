@@ -6,31 +6,61 @@ import Std.Data.TreeMap
 
 namespace Prismriver
 
-variable (P T D) [Time T D]
+abbrev PartId := Nat
+
+structure Part (P) where
+  instrument : Option (Instrument P) := .none
 
 inductive ControlEvent
   /-- Indicate change of a bar -/
   | wall
+  deriving Repr
+
+instance : ToString ControlEvent where
+  toString e := match e with
+    | .wall => "|"
 
 /-- An event occuring at some particular time -/
-inductive Event where
+inductive Event (P T) [Time T] where
   -- Music note
-  | note (n : Note P D) (instrument? : Option (Instrument P))
+  | note (n : Note P T) (part? : Option PartId := .none)
   -- Control behaviour event
   | control (e : ControlEvent)
 
-protected def Event.duration? : Event P D → Option D
+instance [ToString P] [ToString T] [Time T] : ToString (Event P T) where
+  toString event := match event with
+    | .note n .none => s!"{n}"
+    | .note n (.some part) => s!"{n} ({part})"
+    | .control e => s!"{e}"
+
+protected def Event.duration? { P T } [Time T] : Event P T → Option T
   | .note { duration, .. } _ => duration
   | .control .. => .none
 
-/-- A music score -/
-structure Score [Time T D] where
-  events : Std.TreeMap T (List (Event P D)) (cmp := Ord.compare) := .empty
+/-- A music score, stored in "timewise" format for simultaneity analysis -/
+structure Score (P T) [Time T] where
+  /-- List of part ids -/
+  parts : Std.TreeMap PartId (Part P) := .empty
+  /-- List of events in chronological order -/
+  events : Std.TreeMap T (List (Event P T)) (cmp := Ord.compare) := .empty
+
+variable { P T } [Time T]
+
+instance [ToString P] [ToString T] : ToString (Score P T) where
+  toString score :=
+    let parts := score.parts.foldl (init := "") λ acc partId _part =>
+      let part := s!"{partId}"
+      s!"{acc} {part}"
+    let events := score.events.foldl (init := "") λ acc time events =>
+      let events := events.foldl (init := "") λ acc e => s!"{acc} {e}"
+      let line := s!"{time} [{events} ]"
+      s!"{acc}\n{line}"
+    s!"{parts}\n{events}"
 
 namespace Score
 
-protected def addEvent { P T D } [Time T D] (score : Score P T D) (time : T) (event : Event P D)
-  : Score P T D :=
+protected def addEvent (score : Score P T) (time : T) (event : Event P T)
+  : Score P T :=
   let events' := score.events.insertIfNew time []
   let events'' := events'.modify time λ li => event :: li
   { score with events := events'' }
@@ -38,16 +68,17 @@ protected def addEvent { P T D } [Time T D] (score : Score P T D) (time : T) (ev
 structure Context where
   time : T
   -- List of all active events at time `T`
-  events : Std.TreeMap T (List (Event P D))
+  events : Std.TreeMap T (List (Event P T)) := .empty
 
 /-- Returns new events generated in this instant -/
-protected def Context.newEvents (context : Context P T D) : List (Event P D) :=
+protected def Context.newEvents (context : @Context P T _) : List (Event P T) :=
   context.events.getD context.time []
 
-/-- Chronological fold on a score -/
-protected def foldM [Monad M] (score : Score P T D) (m : α → Context P T D → M α) (init : α)
+/-- Chronological fold on a score. If `tail` is set to true, output a terminal instance with no events -/
+protected def foldM [Monad M] [BEq T] (score : Score P T) (m : α → @Context P T _ → M α) (init : α)
+  (tail : Bool := true)
   : M α := do
-  let (a, _) ← score.events.foldlM (init := (init, Std.TreeMap.empty))
+  let (a, es) ← score.events.foldlM (init := (init, Std.TreeMap.empty))
     λ (acc, lingering) time events => do
       let lingering := lingering.filterMap λ t es =>
         let es := es.filter λ e =>
@@ -57,10 +88,26 @@ protected def foldM [Monad M] (score : Score P T D) (m : α → Context P T D �
       let context := { time, events := lingering.insert time events }
       let a ← m acc context
       pure (a, context.events)
+  if tail then if let .some t0 := es.minKey? then
+    -- Generate one last time slice
+    let maxT := es.foldl (init := t0) λ maxT time events =>
+      let maxET? := events.filterMap (·.duration?.map (time + ·)) |>.max?
+      match maxET? with
+      | .some t' => max maxT t'
+      | .none => maxT
+    if maxT != t0 then
+      -- Create one last temporal instance
+      let a' ← m a { time := maxT + Time.bar }
+      return a'
   return a
 
+protected def forM [Monad M] [BEq T] (score : Score P T) (m : @Context P T _ → M Unit)
+  (tail : Bool := true)
+  : M Unit := do
+  score.foldM (init := ()) (tail := tail) λ () => m
+
 /-- Combine two scores-/
-protected def merge (score1 score2 : Score P T D) : Score P T D :=
+protected def merge (score1 score2 : Score P T) : Score P T :=
   {
     events := score1.events.mergeWith (λ _ es1 es2 => es1 ++ es2) score2.events
   }
@@ -68,6 +115,7 @@ protected def merge (score1 score2 : Score P T D) : Score P T D :=
 end Score
 
 /-- Score with notes being in et12 -/
-abbrev EqualTemp.Score12 := @Prismriver.Score Int MeasuredTime Rat
+abbrev EqualTemp.Score12 := @Prismriver.Score Int MeasuredTime
 /-- Score with classical notes -/
-abbrev Classical.Score := @Prismriver.Score Pitch MeasuredTime Rat
+abbrev Classical.Part := @Prismriver.Part Pitch
+abbrev Classical.Score := @Prismriver.Score Pitch MeasuredTime
