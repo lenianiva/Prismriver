@@ -93,7 +93,7 @@ def elabNote (stx : TSyntax `music_note) : Elab.Term.TermElabM Expr := do
   let h := (h.raw.isLit? hepKind).getD "c"
   let acc := acc?.bind (·.raw.isLit? accidentalKind) |>.getD ""
   let oct := oct?.bind (·.raw.isLit? octaveKind) |>.getD ""
-  let d : Rat := mkRat 1 (d.map (·.getNat) |>.getD 4)
+  let d : MeasuredTime := mkRat 1 (d.map (·.getNat) |>.getD 4)
   let .some pitch := parsePitch h acc oct
     | Elab.throwUnsupportedSyntax
   let note ←
