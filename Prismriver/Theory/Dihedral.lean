@@ -8,7 +8,7 @@ namespace Prismriver.Theory.Dihedral
 
 open Classical
 open Lean
-open Prismriver.Dihedral
+open Dihedral
 
 inductive Parity : Type | major | minor
 deriving DecidableEq, Repr, Fintype
@@ -50,7 +50,7 @@ instance : ToString Triad where
     s!"({pitch}, {t.2})"
 
 def TransposeAction.toDihedral :
-      TransposeAction Pitch Interval → DihedralGroup 12
+      @TransposeAction Pitch Interval → DihedralGroup 12
     | .r i =>
         DihedralGroup.r (interval_toZMod12 i)
     | .sr a i =>
@@ -180,45 +180,45 @@ instance : MulAction (DihedralGroup 12) Triad where
         symm
         apply inverseInverse_subtract'
 
-lemma pitch_toZMod12_add_interval (p : Pitch) (i : Interval) :
-  pitch_toZMod12 (p + i) = pitch_toZMod12 p + interval_toZMod12 i := by
+local instance : Scale Pitch Interval := diatonic ⟨.c, .natural⟩ .c
+
+lemma pitch_toZMod12_smul_interval (p : Pitch) (i : Interval) :
+  pitch_toZMod12 (i • p) = pitch_toZMod12 p + interval_toZMod12 i := by
   unfold pitch_toZMod12 interval_toZMod12
-  simp only [add_Pitch_Interval_acc, add_Pitch_Interval_name]
+  simp only [smul_Pitch_Interval_acc, smul_Pitch_Interval_name]
   rw [← nameDistance_image (p.name + i.name) p.name 0]
   grind
 
-lemma pitch_toZMod12_sub_interval (p : Pitch) (i : Interval) :
-    pitch_toZMod12 (p - i) =
+lemma pitch_toZMod12_smul_neg_interval (p : Pitch) (i : Interval) :
+    pitch_toZMod12 ((-i) • p) =
       pitch_toZMod12 p - interval_toZMod12 i := by
+  rw [pitch_toZMod12_smul_interval]
   unfold pitch_toZMod12 interval_toZMod12
-  simp only [sub_Pitch_Interval_acc, sub_Pitch_Interval_name]
-  rw [← nameDistance_image (p.name + -i.name) p.name 0]
+  simp only [Interval.instNeg]
   grind
 
 lemma interval_toZMod12_pitch_sub_pitch (p q : Pitch) :
-    interval_toZMod12 (p - q) =
+    interval_toZMod12 (p / q) =
       pitch_toZMod12 p - pitch_toZMod12 q := by
   unfold pitch_toZMod12 interval_toZMod12
-  simp only [sub_Pitch_Pitch_semitones, sub_Accidental_semitones]
+  simp only [div_Pitch_Pitch_semitones, Accidental.sub_Accidental_semitones]
   rw [← nameDistance_image p.name q.name 0]
   grind
 
-lemma pitch_toZMod12_srInterval (a p : Pitch) (i : Interval) :
-  pitch_toZMod12 (srInterval i a p) = 2 * pitch_toZMod12 a - pitch_toZMod12 p - interval_toZMod12 i := by
+lemma pitch_toZMod12_srInterval [Scale Pitch Interval] (a p : Pitch) (i : Interval) :
+    pitch_toZMod12 (srInterval i a p) = 2 * pitch_toZMod12 a - pitch_toZMod12 p - interval_toZMod12 i := by
   unfold srInterval
-  rw [pitch_toZMod12_sub_interval]
-  rw [pitch_toZMod12_sub_interval]
-  rw [interval_toZMod12_pitch_sub_pitch]
+
   rw [two_mul]
   grind
 
 def pitchTriad (p : Pitch) (q : Parity) : Triad := (pitch_toZMod12 p, q)
 
-def TransposeAction.mapParity : TransposeAction Pitch Interval → Parity → Parity
+def TransposeAction.mapParity : @TransposeAction Pitch Interval → Parity → Parity
   | .r _, q => q
   | .sr _ _, q => q.flip
 
-theorem transposeAction_toDihedral_triad (t : TransposeAction Pitch Interval) (p : Pitch) (q : Parity) :
+theorem transposeAction_toDihedral_triad (t : @TransposeAction Pitch Interval) (p : Pitch) (q : Parity) :
   TransposeAction.toDihedral t • pitchTriad p q = pitchTriad (t • p) (TransposeAction.mapParity t q) := by
   cases t
   apply Prod.ext
