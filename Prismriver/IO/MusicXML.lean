@@ -38,11 +38,8 @@ end Xml
 
 open Prismriver.Xml
 
-structure Part where
-  id : String := "Pat 1"
-  midiInstrument : Option String := "acoustic grand"
-
-protected def Part.toMusicXML (part : Part) : Xml.Element :=
+protected def Part.toMusicXML (part : Classical.Part) : Xml.Element :=
+  let id : String := "Pat 1"
   let midiInstrument := .Element
     (name := "midi-instrument")
     (attributes := (.empty : Xml.Attributes).insert "id" "part1-i1")
@@ -55,7 +52,7 @@ protected def Part.toMusicXML (part : Part) : Xml.Element :=
   ]
   .Element
     (name := "score-part")
-    (attributes := (.empty : Xml.Attributes).insert "id" part.id)
+    (attributes := (.empty : Xml.Attributes).insert "id" id)
     (content := content)
 
 protected def Pitch.toMusicXML (pitch : Classical.Pitch) : Xml.Element :=
@@ -121,7 +118,7 @@ protected def Score.toMusicXML (score : Classical.Score) (metadata : Metadata :=
     |>.map (Xml.Content.Element ·)
 
   let partList : Array Xml.Content := #[
-    .Element ({} : Part).toMusicXML
+    .Element ({} : Classical.Part).toMusicXML
   ]
   let rootContent : Array Xml.Content := #[
     .Element (.Element

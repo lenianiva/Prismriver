@@ -28,9 +28,9 @@ def addEvent (event : Event P T)
   modify λ state => { state with score := state.score.addEvent state.time event }
 
 /-- Insert a new note at the current time -/
-def addNote (note : Note P T) (instrument? : Option (Instrument P) := .none) (still : Bool := false)
+def addNote (note : Note P T) (partId? : Option PartId := .none) (still : Bool := false)
   : CompositionT P T M Unit := do
-  addEvent $ Event.note note instrument?
+  addEvent $ Event.note note partId?
   if !still then
     move note.duration
 

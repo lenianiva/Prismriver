@@ -6,6 +6,11 @@ import Std.Data.TreeMap
 
 namespace Prismriver
 
+abbrev PartId := Nat
+
+structure Part (P) where
+  instrument : Option (Instrument P) := .none
+
 inductive ControlEvent
   /-- Indicate change of a bar -/
   | wall
@@ -18,30 +23,39 @@ instance : ToString ControlEvent where
 /-- An event occuring at some particular time -/
 inductive Event (P T) [Time T] where
   -- Music note
-  | note (n : Note P T) (instrument? : Option (Instrument P))
+  | note (n : Note P T) (part? : Option PartId := .none)
   -- Control behaviour event
   | control (e : ControlEvent)
 
 instance [ToString P] [ToString T] [Time T] : ToString (Event P T) where
   toString event := match event with
-    | .note n _instrument? => s!"{n}"
+    | .note n .none => s!"{n}"
+    | .note n (.some part) => s!"{n} ({part})"
     | .control e => s!"{e}"
 
 protected def Event.duration? { P T } [Time T] : Event P T → Option T
   | .note { duration, .. } _ => duration
   | .control .. => .none
 
-/-- A music score -/
+/-- A music score, stored in "timewise" format for simultaneity analysis -/
 structure Score (P T) [Time T] where
+  /-- List of part ids -/
+  parts : Std.TreeMap PartId (Part P) := .empty
+  /-- List of events in chronological order -/
   events : Std.TreeMap T (List (Event P T)) (cmp := Ord.compare) := .empty
 
-variable { P T } [instTime : Time T]
+variable { P T } [Time T]
 
 instance [ToString P] [ToString T] : ToString (Score P T) where
-  toString score := score.events.foldl (init := "") λ acc time events =>
-    let events := events.foldl (init := "") λ acc e => s!"{acc} {e}"
-    let line := s!"{time} [{events} ]"
-    s!"{acc}\n{line}"
+  toString score :=
+    let parts := score.parts.foldl (init := "") λ acc partId _part =>
+      let part := s!"{partId}"
+      s!"{acc} {part}"
+    let events := score.events.foldl (init := "") λ acc time events =>
+      let events := events.foldl (init := "") λ acc e => s!"{acc} {e}"
+      let line := s!"{time} [{events} ]"
+      s!"{acc}\n{line}"
+    s!"{parts}\n{events}"
 
 namespace Score
 
@@ -57,11 +71,11 @@ structure Context where
   events : Std.TreeMap T (List (Event P T)) := .empty
 
 /-- Returns new events generated in this instant -/
-protected def Context.newEvents (context : @Context P T instTime) : List (Event P T) :=
+protected def Context.newEvents (context : @Context P T _) : List (Event P T) :=
   context.events.getD context.time []
 
 /-- Chronological fold on a score. If `tail` is set to true, output a terminal instance with no events -/
-protected def foldM [Monad M] [BEq T] (score : Score P T) (m : α → @Context P T instTime → M α) (init : α)
+protected def foldM [Monad M] [BEq T] (score : Score P T) (m : α → @Context P T _ → M α) (init : α)
   (tail : Bool := true)
   : M α := do
   let (a, es) ← score.events.foldlM (init := (init, Std.TreeMap.empty))
@@ -83,7 +97,7 @@ protected def foldM [Monad M] [BEq T] (score : Score P T) (m : α → @Context P
       | .none => maxT
     if maxT != t0 then
       -- Create one last temporal instance
-      let a' ← m a { time := maxT + instTime.bar }
+      let a' ← m a { time := maxT + Time.bar }
       return a'
   return a
 
@@ -98,4 +112,5 @@ end Score
 /-- Score with notes being in et12 -/
 abbrev EqualTemp.Score12 := @Prismriver.Score Int MeasuredTime
 /-- Score with classical notes -/
+abbrev Classical.Part := @Prismriver.Part Pitch
 abbrev Classical.Score := @Prismriver.Score Pitch MeasuredTime

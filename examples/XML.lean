@@ -11,9 +11,14 @@ def compositionM : Classical.CompositionT Id Unit := do
   addNote ⟨.new .e 4, t14⟩
   addNote ⟨.new .f 4, t14⟩
 
+/--
+Usage:
+
+`lake env lean --run examples/XML.lean | alda import -i musicxml | alda play`
+-/
 def main : IO UInt32 := do
   let (_, { score, .. }) := compositionM.run {} |>.run
-  IO.println s!"{score}"
+  IO.eprintln s!"{score}"
   let xml := score.toMusicXML
   IO.println s!"{xml}"
   return 0
