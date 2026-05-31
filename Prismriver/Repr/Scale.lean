@@ -31,8 +31,11 @@ class Scale (P I : Type) extends PseudoScale P, Add I, Sub I, HMul Int I I, Neg 
   add_right_neg (i : I) : i + (-i) = zero := by
     rw [add_comm]
   sub_neg (i j : I) : i - (-j) = i + j
+  sub_eq_add_neg (i j : I) : i - j = i + -j
+  neg_neg (i : I) : -(-i) = i
   neg_sub (i j : I) : -(i - j) = j - i := by
     simp [sub_neg, add_comm, Int.neg_add]
+  neg_add (i j : I) : -(i + j) = -i + -j
   zero_mul (i : I) : (0 : Int) * i = zero
 
   mul_distrib (n m : Int) (i : I) : (n + m) * i = n * i + m * i
@@ -41,6 +44,7 @@ class Scale (P I : Type) extends PseudoScale P, Add I, Sub I, HMul Int I I, Neg 
   smul_zero (p : P) : zero • p = p
   smul_assoc (p : P) (i j : I) : j • (i • p) = (i + j) • p
   smul_div (p q : P) : (q / p) • p = q
+  div_smul_self (i : I) (p : P) : (i • p) / p = i
 
 variable { P I }
 
@@ -102,7 +106,10 @@ instance scale (n : Nat) : Scale Pitch Interval where
   add_left_neg := Int.add_left_neg
   add_right_neg := Int.add_right_neg
   sub_neg := Int.sub_neg
+  sub_eq_add_neg := by apply Int.sub_eq_add_neg
   neg_sub := Int.neg_sub
+  neg_neg := Int.neg_neg
+  neg_add := by apply Int.neg_add
   zero_mul := Int.zero_mul
   neg_mul i j := by
     apply Int.neg_mul
@@ -112,6 +119,8 @@ instance scale (n : Nat) : Scale Pitch Interval where
     rw [Int.add_comm i p, Int.add_comm, Int.add_comm _ p, Int.add_assoc]
   smul_div p q := by
     apply Int.sub_add_cancel
+  div_smul_self i p := by
+    rw [Int.add_sub_cancel]
 
 theorem n_et_notes (n : Nat) : (scale n).pitches.length = n := by
   unfold Scale.pitches

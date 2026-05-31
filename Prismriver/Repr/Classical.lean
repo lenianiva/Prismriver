@@ -389,8 +389,22 @@ theorem add_left_neg (i : Interval) : (-i) + i = Interval.zero := by
   omega
 
 theorem sub_neg (i j : Interval) : i - (-j) = i + j := by
-  sorry
-
+  unfold HSub.hSub instHSub Sub.sub instSub
+  apply Interval.ext
+  simp
+  unfold HAdd.hAdd instHAdd Add.add instAdd
+  simp
+  rw [Int.sub_eq_add_neg]
+  simp
+  unfold Neg.neg Int.instNegInt instNeg
+  simp
+  grind
+  simp
+  rw [Int.sub_eq_add_neg]
+  have : i.semitones + -(-j).semitones = (i + -(-j)).semitones := by rfl
+  rw [this]
+  unfold Neg.neg instNeg
+  simp
 
 theorem neg_neg_sub (i j : Interval) : - (j - i) = -j + i := by
   have : j - i = j + -i := by
@@ -687,9 +701,11 @@ instance diatonic (root : Tone) (modus : Hep) : Scale Pitch Interval where
     . simp
       apply Int.zero_mul
   neg_sub i j := by
-    sorry
+    rw [Interval.neg_neg_sub]
+    rw [Interval.add_comm]
+    rfl
   sub_neg i j := by
-    sorry
+    rw [Interval.sub_neg]
   neg_mul x _n := by
     unfold HMul.hMul Interval.instHMulInt instHMul
     simp
@@ -726,7 +742,18 @@ instance diatonic (root : Tone) (modus : Hep) : Scale Pitch Interval where
     apply Pitch.ext
     simp
     omega
-    sorry
+    apply Accidental.ext
+    simp
+    rw [Int.add_comm]
+    have h1 : p.name + (q.name - p.name) = q.name := by omega
+    rw [h1]
+    have h2 : nameDistance q.name p.name + (q.acc - p.acc).semitones + p.acc.semitones - nameDistance q.name p.name = (q.acc - p.acc).semitones + p.acc.semitones + nameDistance q.name p.name - nameDistance q.name p.name := by omega
+    rw [h2]
+    have h3 : (q.acc - p.acc).semitones = q.acc.semitones - p.acc.semitones := by rfl
+    rw [h3]
+    have h4 : q.acc.semitones - p.acc.semitones + p.acc.semitones = q.acc.semitones := by omega
+    rw [h4]
+    grind
 
 /-- Equal temperament tuning of diatonic scales -/
 instance equalTempTuning root modus : Tuning Pitch EqualTemp.Pitch
