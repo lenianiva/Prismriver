@@ -18,6 +18,11 @@ section Monad
 
 variable { M } [Monad M]
 
+def addPart (partId : PartId) (part : Part P) : CompositionT P T M Unit := do
+  modify λ state => { state with score := { state.score with
+    parts := state.score.parts.insert partId part
+  }}
+
 /-- Move the current time forward -/
 def move (d : T) : CompositionT P T M Unit := do
   modify λ state => { state with time := state.time + d }

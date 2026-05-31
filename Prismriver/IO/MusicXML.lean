@@ -11,35 +11,13 @@ structure Metadata where
   title : String := "untitled"
   deriving Inhabited
 
-namespace Xml
-
-def single (name s : String) : Xml.Element := .Element
+private def single (name s : String) : Xml.Element := .Element
     (name := name)
     (attributes := .empty)
     (content := #[.Character s])
 
-private structure OutputState where
-  time : MeasuredTime := {}
-  measure : List Classical.Note := []
-  /-- Measure number -/
-  measureN : Nat := 0
 
-private def OutputState.packMeasure (σ : OutputState) (time : MeasuredTime)
-  : (OutputState × List Classical.Note) :=
-  let σ' := {
-    σ with
-    time,
-    measure := []
-    measureN := σ.measureN + 1
-  }
-  (σ', σ.measure)
-
-end Xml
-
-open Prismriver.Xml
-
-protected def Part.toMusicXML (part : Classical.Part) : Xml.Element :=
-  let id : String := "Pat 1"
+protected def Part.toMusicXML (_part : Classical.Part) (id : PartId) : Xml.Element :=
   let midiInstrument := .Element
     (name := "midi-instrument")
     (attributes := (.empty : Xml.Attributes).insert "id" "part1-i1")
@@ -47,17 +25,17 @@ protected def Part.toMusicXML (part : Classical.Part) : Xml.Element :=
     .Element (single "midi-program" $ toString 1)
   ])
   let content := #[
-    .Element (single "name" "part1"),
+    .Element (single "part-name" "part1"),
     .Element midiInstrument,
   ]
   .Element
     (name := "score-part")
-    (attributes := (.empty : Xml.Attributes).insert "id" id)
+    (attributes := (.empty : Xml.Attributes).insert "id" $ toString id)
     (content := content)
 
 protected def Pitch.toMusicXML (pitch : Classical.Pitch) : Xml.Element :=
   let content := #[
-    .Element (single "step" $ toString pitch.hep),
+    .Element (single "step" $ (toString pitch.hep).toUpper),
     .Element (single "octave" $ toString pitch.octave),
   ]
   let ⟨acc⟩ := pitch.acc
@@ -73,55 +51,70 @@ protected def Pitch.toMusicXML (pitch : Classical.Pitch) : Xml.Element :=
 
 /-- Convert a note -/
 protected def Note.toMusicXML (note : Classical.Note) : Xml.Element :=
+  let duration := note.duration.offset.num
   let content := #[
     .Element (Pitch.toMusicXML note.pitch),
-    .Element (single "duration" $ toString note.duration),
-    .Element (single "type" "whole"),
+    .Element (single "duration" $ toString duration),
+    .Element (single "type" "quarter"),
   ]
   .Element
     (name := "note")
     (attributes := .empty)
     (content := content)
 
+private structure OutputState where
+  time : MeasuredTime := {}
+  /-- Measure number -/
+  measureN : Nat := 0
+  parts : Std.TreeMap PartId (Std.TreeMap Nat (List Classical.Note))
+  measure : List Classical.Note := []
+
+private def OutputState.insertNote (σ : OutputState) (partId : PartId) (elem : Classical.Note)
+  : OutputState :=
+  {
+    σ with
+    parts := σ.parts.modify partId λ part => part.alter σ.measureN λ
+      | .none => [elem]
+      | .some measure => measure ++ [elem]
+  }
+
 /-- Export a score to timewise MusicXML form -/
 protected def Score.toMusicXML (score : Classical.Score) (metadata : Metadata := {})
   : Xml.Element :=
-  let measuresM : StateM OutputState (Array Xml.Element) := score.foldM (P := Classical.Pitch)
-    (init := #[]) (m := λ acc context@{ time, .. } => do
+  let partsM : StateM OutputState Unit := score.forM (P := Classical.Pitch)
+    λ context@{ time, .. } => do
     let σ ← get
-    let newMeasure ← if σ.time.bars ≠ time.bars then
-        let (σ', measureNotes) := σ.packMeasure time
-        let attrs := (.empty : Xml.Attributes).insert "number" (toString σ.measureN)
-        set σ'
-        let measure := Xml.Element.Element
-          (name := "measure")
-          (attributes := attrs)
-          (content := #[
-            .Element (.Element
-              (name := "part")
-              (attributes := (.empty : Xml.Attributes).insert "id" "part1")
-              (content := measureNotes.toArray.map (.Element ·.toMusicXML))
-            )
-          ])
-        pure #[measure]
-      else
-        let newNotes := context.newEvents.filterMap λ
-          | .note note _instrument? =>
-            .some note
-          | _ => .none
-        modify λ state ↦ { state with measure := state.measure ++ newNotes }
-        pure #[]
-      -- consolidate another bar
-    return acc ++ newMeasure)
+    if σ.time.bars ≠ time.bars then
+      modify λ σ => { σ with measureN := time.bars.toNat }
+    context.newEvents.forM λ
+      | .note _ .none => pure ()
+      | .note note (.some partId) =>
+        modify (OutputState.insertNote · partId note)
+      | _ => pure ()
 
-  let measures : Array Xml.Content := measuresM.run' {}
-    |>.map (Xml.Content.Element ·)
+  let (_, outputState) := partsM.run {
+      parts := score.parts.keys.foldl (init := .empty) λ acc key => acc.insert key .empty
+    }
+    --|>.map (Xml.Content.Element ·)
 
-  let partList : Array Xml.Content := #[
-    .Element ({} : Classical.Part).toMusicXML
-  ]
+  let parts := outputState.parts.foldl (init := #[]) λ parts partId part =>
+    let content := part.foldl (init := #[]) λ measures measureNumber measure =>
+      let content := measure.toArray.map (.Element ·.toMusicXML)
+      let element := .Element
+        (name := "measure")
+        (attributes := (.empty : Xml.Attributes).insert "number" $ toString measureNumber)
+        (content := content)
+      measures ++ #[.Element element]
+    let element := .Element
+      (name := "part")
+      (attributes := (.empty : Xml.Attributes).insert "id" $ toString partId)
+      (content := content)
+    parts ++ #[.Element element]
+  let partList : Array Xml.Content := score.parts.foldl (init := #[]) λ acc id part =>
+    let elem := .Element (part.toMusicXML id)
+    acc ++ #[elem]
   let rootContent : Array Xml.Content := #[
-    .Element (.Element
+    Xml.Content.Element (.Element
       (name := "movement-title")
       (attributes := .empty)
       (content := #[.Character metadata.title])
@@ -131,9 +124,9 @@ protected def Score.toMusicXML (score : Classical.Score) (metadata : Metadata :=
       (attributes := .empty)
       (content := partList)
     ),
-  ] ++ measures
+  ] ++ parts
 
   Xml.Element.Element
-    (name := "score-timewise")
-    (attributes := (.empty : Xml.Attributes).insert "version" "4.0")
+    (name := "score-partwise")
+    (attributes := (.empty : Xml.Attributes).insert "version" "3.1")
     (content := rootContent)

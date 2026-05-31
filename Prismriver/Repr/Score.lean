@@ -101,6 +101,11 @@ protected def foldM [Monad M] [BEq T] (score : Score P T) (m : α → @Context P
       return a'
   return a
 
+protected def forM [Monad M] [BEq T] (score : Score P T) (m : @Context P T _ → M Unit)
+  (tail : Bool := true)
+  : M Unit := do
+  score.foldM (init := ()) (tail := tail) λ () => m
+
 /-- Combine two scores-/
 protected def merge (score1 score2 : Score P T) : Score P T :=
   {

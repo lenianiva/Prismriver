@@ -4,12 +4,16 @@ import Prismriver.Composition.Basic
 
 open Prismriver Prismriver.Classical Prismriver.Composition
 
+def addPianoNote (note: Classical.Note)
+  : Classical.CompositionT Id Unit := addNote note (partId? := .some 0)
+
 def compositionM : Classical.CompositionT Id Unit := do
+  addPart 0 {}
   let t14 : MeasuredTime := mkRat 1 4
-  addNote ⟨.new .c 4, t14⟩
-  addNote ⟨.new .d 4, t14⟩
-  addNote ⟨.new .e 4, t14⟩
-  addNote ⟨.new .f 4, t14⟩
+  addPianoNote ⟨.new .c 4, t14⟩
+  addPianoNote ⟨.new .d 4, t14⟩
+  addPianoNote ⟨.new .e 4, t14⟩
+  addPianoNote ⟨.new .f 4, t14⟩
 
 /--
 Usage:
