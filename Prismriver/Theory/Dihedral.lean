@@ -205,10 +205,28 @@ lemma interval_toZMod12_pitch_sub_pitch (p q : Pitch) :
   rw [← nameDistance_image p.name q.name 0]
   grind
 
-lemma pitch_toZMod12_srInterval [Scale Pitch Interval] (a p : Pitch) (i : Interval) :
+lemma pitch_toZMod12_srInterval (a p : Pitch) (i : Interval) :
     pitch_toZMod12 (srInterval i a p) = 2 * pitch_toZMod12 a - pitch_toZMod12 p - interval_toZMod12 i := by
   unfold srInterval
-
+  have h1 : (-(p / a) - i) = -((p / a) + i) := by
+    apply Interval.ext
+    unfold HSub.hSub instHSub Sub.sub Interval.instSub
+    unfold HAdd.hAdd instHAdd Add.add Interval.instAdd
+    unfold Neg.neg Interval.instNeg
+    grind
+    unfold HSub.hSub instHSub Sub.sub Interval.instSub
+    unfold HAdd.hAdd instHAdd Add.add Interval.instAdd
+    unfold Neg.neg Interval.instNeg
+    grind
+  rw [h1]
+  rw [pitch_toZMod12_smul_neg_interval a ((p / a) + i)]
+  have h2 : interval_toZMod12 ((p / a) + i) = interval_toZMod12 (p / a) + interval_toZMod12 i := by
+    unfold interval_toZMod12
+    unfold HAdd.hAdd instHAdd Add.add Interval.instAdd
+    simp
+    rfl
+  rw [h2]
+  rw [interval_toZMod12_pitch_sub_pitch]
   rw [two_mul]
   grind
 
@@ -224,16 +242,16 @@ theorem transposeAction_toDihedral_triad (t : @TransposeAction Pitch Interval) (
   apply Prod.ext
   unfold pitchTriad TransposeAction.toDihedral HSMul.hSMul instHSMul SMul.smul instSMulDihedralGroupOfNatNatTriad
   simp
-  unfold transposeTriad instSMulTransposeActionPitchInterval rInterval
+  unfold transposeTriad instSMulTransposeAction rInterval
   simp
-  rw [pitch_toZMod12_add_interval]
+  rw [pitch_toZMod12_smul_interval]
   unfold pitchTriad TransposeAction.toDihedral TransposeAction.mapParity
   unfold HSMul.hSMul instHSMul SMul.smul instSMulDihedralGroupOfNatNatTriad transposeTriad
   simp
   apply Prod.ext
   unfold pitchTriad TransposeAction.toDihedral HSMul.hSMul instHSMul SMul.smul instSMulDihedralGroupOfNatNatTriad
   simp
-  unfold invertTriad instSMulTransposeActionPitchInterval
+  unfold invertTriad instSMulTransposeAction
   simp
   rw [add_comm]
   rename_i a
