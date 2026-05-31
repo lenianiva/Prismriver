@@ -706,6 +706,19 @@ instance diatonic (root : Tone) (modus : Hep) : Scale Pitch Interval where
     rfl
   sub_neg i j := by
     rw [Interval.sub_neg]
+  sub_eq_add_neg i j := by
+    apply Interval.ext
+    rfl
+    rfl
+  neg_neg i := by
+    apply Interval.ext
+    unfold Neg.neg Interval.instNeg
+    grind
+    unfold Neg.neg Interval.instNeg
+    grind
+  neg_add i := by
+    intro j
+    rw [Interval.neg_add]
   neg_mul x _n := by
     unfold HMul.hMul Interval.instHMulInt instHMul
     simp
@@ -754,6 +767,18 @@ instance diatonic (root : Tone) (modus : Hep) : Scale Pitch Interval where
     have h4 : q.acc.semitones - p.acc.semitones + p.acc.semitones = q.acc.semitones := by omega
     rw [h4]
     grind
+  div_smul_self i p := by
+   unfold HDiv.hDiv instHDivPitchOutParamInterval
+   unfold HSMul.hSMul instHSMulIntervalPitch
+   simp
+   apply Interval.ext
+   simp
+   rw [Int.add_comm]
+   rw [Int.add_sub_cancel]
+   simp
+   rw [Int.add_comm]
+   rw [Accidental.sub_Accidental_semitones]
+   grind
 
 /-- Equal temperament tuning of diatonic scales -/
 instance equalTempTuning root modus : Tuning Pitch EqualTemp.Pitch
