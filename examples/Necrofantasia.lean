@@ -21,7 +21,7 @@ def compositionM : Classical.CompositionT Id Unit := do
 /--
 Usage:
 
-`lake env lean --run examples/XML.lean | alda import -i musicxml | alda play`
+`lake env lean --run examples/Necrofantasia.lean | alda import -i musicxml | alda play`
 -/
 def main : IO UInt32 := do
   let (_, { score, .. }) := compositionM.run {} |>.run

@@ -25,17 +25,21 @@ protected def Metadata.toWorkElement (metadata : Metadata) : Xml.Element :=
     (attributes := .empty)
     (content := content)
 
-protected def Part.toMusicXML (_part : Classical.Part) (id : PartId) : Xml.Element :=
-  let midiInstrument := .Element
-    (name := "midi-instrument")
-    (attributes := (.empty : Xml.Attributes).insert "id" "part1-i1")
-    (content := #[
-    .Element (single "midi-program" $ toString 1)
-  ])
+protected def Part.toMusicXML (part : Part) (id : PartId) : Xml.Element :=
+  let midiInstrument := match part.instrument?.bind (·.midiInstrument?) with
+    | .none => #[]
+    | .some program =>
+      #[
+        .Element (.Element
+            (name := "midi-instrument")
+            (attributes := (.empty : Xml.Attributes).insert "id" s!"$part{id}-{program}")
+            (content := #[
+            .Element (single "midi-program" $ toString program)
+          ]))
+      ]
   let content := #[
-    .Element (single "part-name" "part1"),
-    .Element midiInstrument,
-  ]
+    .Element (single "part-name" $ toString id),
+  ] ++ midiInstrument
   .Element
     (name := "score-part")
     (attributes := (.empty : Xml.Attributes).insert "id" $ toString id)

@@ -8,8 +8,8 @@ namespace Prismriver
 
 abbrev PartId := Nat
 
-structure Part (P) where
-  instrument : Option (Instrument P) := .none
+structure Part where
+  instrument? : Option Instrument := .none
 
 inductive ControlEvent
   /-- Indicate change of a bar -/
@@ -40,7 +40,7 @@ protected def Event.duration? { P T } [Time T] : Event P T → Option T
 /-- A music score, stored in "timewise" format for simultaneity analysis -/
 structure Score (P T) [Time T] where
   /-- List of part ids -/
-  parts : Std.TreeMap PartId (Part P) := .empty
+  parts : Std.TreeMap PartId Part := .empty
   /-- List of events in chronological order -/
   events : Std.TreeMap T (List (Event P T)) (cmp := Ord.compare) := .empty
 
@@ -117,5 +117,4 @@ end Score
 /-- Score with notes being in et12 -/
 abbrev EqualTemp.Score12 := @Prismriver.Score Int MeasuredTime
 /-- Score with classical notes -/
-abbrev Classical.Part := @Prismriver.Part Pitch
 abbrev Classical.Score := @Prismriver.Score Pitch MeasuredTime

@@ -18,7 +18,7 @@ section Monad
 
 variable { M } [Monad M]
 
-def addPart (partId : PartId) (part : Part P) : CompositionT P T M Unit := do
+def addPart (partId : PartId) (part : Part) : CompositionT P T M Unit := do
   modify λ state => { state with score := { state.score with
     parts := state.score.parts.insert partId part
   }}
