@@ -38,6 +38,26 @@ end Xml
 
 open Prismriver.Xml
 
+structure Part where
+  id : String := "Pat 1"
+  midiInstrument : Option String := "acoustic grand"
+
+protected def Part.toMusicXML (part : Part) : Xml.Element :=
+  let midiInstrument := .Element
+    (name := "midi-instrument")
+    (attributes := (.empty : Xml.Attributes).insert "id" "part1-i1")
+    (content := #[
+    .Element (single "midi-program" $ toString 1)
+  ])
+  let content := #[
+    .Element (single "name" "part1"),
+    .Element midiInstrument,
+  ]
+  .Element
+    (name := "score-part")
+    (attributes := (.empty : Xml.Attributes).insert "id" part.id)
+    (content := content)
+
 protected def Pitch.toMusicXML (pitch : Classical.Pitch) : Xml.Element :=
   let content := #[
     .Element (single "step" $ toString pitch.hep),
@@ -72,7 +92,7 @@ protected def Score.toMusicXML (score : Classical.Score) (metadata : Metadata :=
   let measuresM : StateM OutputState (Array Xml.Element) := score.foldM (P := Classical.Pitch)
     (init := #[]) (m := λ acc context@{ time, .. } => do
     let σ ← get
-    let newMeasure ← if σ.time.bar ≠ time.bar then
+    let newMeasure ← if σ.time.bars ≠ time.bars then
         let (σ', measureNotes) := σ.packMeasure time
         let attrs := (.empty : Xml.Attributes).insert "number" (toString σ.measureN)
         set σ'
@@ -101,8 +121,7 @@ protected def Score.toMusicXML (score : Classical.Score) (metadata : Metadata :=
     |>.map (Xml.Content.Element ·)
 
   let partList : Array Xml.Content := #[
-    .Element (single "part-name" "part1"),
-    .Element (single "id" "part1"),
+    .Element ({} : Part).toMusicXML
   ]
   let rootContent : Array Xml.Content := #[
     .Element (.Element

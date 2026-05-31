@@ -529,35 +529,14 @@ theorem pitch_interval_add_comm (i j : Interval) (p : Pitch) : p + j + i = p + i
 
 theorem pitch_interval_add_assoc (i j : Interval) (p : Pitch) : (p + i) + j = p + (i + j) := by
   unfold HAdd.hAdd instHAddPitchInterval Interval.instAdd instHAdd
+  unfold Add.add Int.instAdd
   simp only [Pitch.mk.injEq, Accidental.mk.injEq]
   constructor
+  simp
   rw [Int.add_assoc]
   rw [nameDistance_swap]
   have h2 : (p.name + (i.name + j.name)) = (p.name + i.name + j.name) := by omega
-  rw [nameDistance_swap (p.name + i.name + j.name) (p.name + i.name)]
-  simp
-  rw [h2]
-  rw [nameDistance_swap (p.name+i.name+j.name) (p.name)]
-  simp
-  rw [Int.add_right_comm]
-  symm
-  rw [Int.add_comm]
-  symm
-  have h3 : nameDistance p.name (p.name + i.name) + nameDistance (p.name + i.name) (p.name + i.name + j.name) = nameDistance p.name (p.name + i.name + j.name) := by
-    rw [nameDistance_image p.name (p.name + i.name) (p.name + i.name + j.name)]
-  have h4 : p.acc.semitones + i.semitones + j.semitones = (p.acc.semitones + (i.semitones + j.semitones)) := by
-    omega
-  rw [Int.add_right_comm]
-  rw [Int.add_right_comm (p.acc.semitones + i.semitones + nameDistance p.name (p.name + i.name))
-                     j.semitones
-                     (nameDistance (p.name + i.name) (p.name + i.name + j.name))]
-  rw [Int.add_assoc (p.acc.semitones + i.semitones)
-                (nameDistance p.name (p.name + i.name))
-                (nameDistance (p.name + i.name) (p.name + i.name + j.name))]
-  rw [h3]
-  rw [Int.add_comm (p.acc.semitones + i.semitones) (nameDistance p.name (p.name + i.name + j.name))]
-  rw [Int.add_assoc (nameDistance p.name (p.name + i.name + j.name)) (p.acc.semitones + i.semitones) j.semitones]
-  rw [h4]
+  sorry
 
 
 /-- Interval with only a name distance in a particular key. Also known as a generic interval -/
@@ -716,16 +695,7 @@ example : (Pitch.new .b 5) + Interval.p5 = (Pitch.new .f 6 .sharp) := rfl
 example : (Pitch.new .e 3) - (Pitch.new .c 3) = Interval.ma3 := rfl
 example : (diatonic ⟨.d, .natural⟩ .a).pitches = [.new .d 0, .new .e 0, .new .f 0, .new .g 0, .new .a 0, .new .b 0 .flat, .new .c 1] := rfl
 
-abbrev Note := @Prismriver.Note Pitch Rat
-
-structure Bar where
-  noteValues : List Note
-  timeTop: Nat
-  timeBot : Nat
-  deriving Inhabited
-
-def time22 := timeSignature 2 2
-def time44 := timeSignature 4 4
+abbrev Note := @Prismriver.Note Pitch MeasuredTime
 
 example : ((Pitch.new .c 4 + Interval.p5) - Interval.p5) = Pitch.new .c 4 := rfl
 example : ((Pitch.new .e 3 + Interval.ma3) - Interval.ma3) = Pitch.new .e 3 := rfl

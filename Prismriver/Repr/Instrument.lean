@@ -8,6 +8,7 @@ structure Instrument where
   name : String
   lowest : Option P := .none
   highest : Option P := .none
+  midiInstrument : Option String := .none
 
 namespace Instrument
 
@@ -19,7 +20,8 @@ def sine : Instrument (P := Int) := {
 open EqualTemp in
 /-- Equally-tempered acoustic grand piano -/
 def acoustic_grand : Instrument (P := Int) := {
-  name := "acoustic_grand"
+  name := "Acoustic Grand",
+  midiInstrument := "acoustic grand",
   lowest := .some (c4 - octave * 3 - 2),
   highest := .some (c4 + octave * 4),
 }
@@ -27,7 +29,8 @@ def acoustic_grand : Instrument (P := Int) := {
 open EqualTemp in
 /-- Equally-tempered violin -/
 def violin : Instrument (P := Int) := {
-  name := "violin"
+  name := "Violin"
+  midiInstrument := "violin",
   lowest := .some (c4 - 3),
   highest := .some (c4 + octave * 3),
 }

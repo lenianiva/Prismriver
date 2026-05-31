@@ -4,14 +4,14 @@ namespace Prismriver
 
 namespace Composition
 
-variable (P T D : Type) [Time T D]
-
-structure State where
-  time : T -- Current time
-  score : Score P T D
+structure State (P T : Type) [time : Time T] where
+  time : T := time.zero -- Current time
+  score : Score P T := {}
 
 /-- Monad for algorithmic composition -/
-abbrev CompositionT := StateT (State P T D)
+abbrev CompositionT (P T : Type) [Time T] := StateT (State P T)
+
+variable { P T : Type } [Time T]
 
 -- Monadic utilities about composition
 section Monad
@@ -19,17 +19,24 @@ section Monad
 variable { M } [Monad M]
 
 /-- Move the current time forward -/
-def move (d : D) : CompositionT P T D M Unit := do
+def move (d : T) : CompositionT P T M Unit := do
   modify λ state => { state with time := state.time + d }
 
-/-- Insert a new note at the current time -/
-def addNote (note : Note P D) (instrument? : Option (Instrument P) := .none)
-  : CompositionT P T D M Unit := do
-  let event := Event.note note instrument?
+/-- Insert a new event at the current time -/
+def addEvent (event : Event P T)
+  : CompositionT P T M Unit := do
   modify λ state => { state with score := state.score.addEvent state.time event }
+
+/-- Insert a new note at the current time -/
+def addNote (note : Note P T) (instrument? : Option (Instrument P) := .none) (still : Bool := false)
+  : CompositionT P T M Unit := do
+  addEvent $ Event.note note instrument?
+  if !still then
+    move note.duration
 
 end Monad
 
 end Composition
 
 export Composition (CompositionT)
+abbrev Classical.CompositionT := @Composition.CompositionT Classical.Pitch MeasuredTime

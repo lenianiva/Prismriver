@@ -14,7 +14,7 @@ instance [Ord P] [Ord D] : LT (Note P D) := ltOfOrd
 instance [Ord P] [Ord D] : LE (Note P D) := leOfOrd
 
 instance [ToString P] [ToString D] : ToString (Note P D) where
-  toString n := s!"{n.pitch}{n.duration}"
+  toString n := s!"{n.pitch}/{n.duration}"
 
 open Lean in
 instance [ToExpr P] [ToExpr D] : ToExpr (Note P D) where
