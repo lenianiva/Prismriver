@@ -13,6 +13,7 @@ steps:
       - . ~/.profile
       - apt-get update && apt-get install -y libasound2-dev alda
 
+      - lake exe cache get
       - lake build
       - lake test
     when:
