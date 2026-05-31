@@ -83,7 +83,7 @@ protected def foldM [Monad M] [BEq T] (score : Score P T) (m : α → @Context P
       | .none => maxT
     if maxT != t0 then
       -- Create one last temporal instance
-      let a' ← m a { time := maxT }
+      let a' ← m a { time := maxT + instTime.bar }
       return a'
   return a
 
