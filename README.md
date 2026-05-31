@@ -72,6 +72,21 @@ Prismriver's IO:
 alda import -i musicxml -f $NAME.musicxml | alda play
 ```
 
+### Troubleshooting
+
+If during compilation, Lean complains
+
+```
+error loading library, libLake_shared.so: cannot open shared object file: No such file or directory
+```
+
+it may be necessary to setup the environment:
+
+``` sh
+export LEAN_ROOT=$(lean --print-prefix)
+export LD_LIBRARY_PATH=$LEAN_ROOT/lib/lean:$LD_LIBRARY_PATH
+```
+
 ## Contributing
 
 Every commit must pass through pre-commit hooks. Install `prek` (provided in
