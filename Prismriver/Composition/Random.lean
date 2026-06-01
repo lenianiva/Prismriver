@@ -1,6 +1,40 @@
 import Prismriver.Repr.Classical
 
-namespace Prismriver
+namespace Prismriver.Composition
+
+/-- Generate weighted random variable -/
+def randWeighted { gen } [RandomGen gen] (g : gen) (weights : Array Nat) : Nat × gen := Id.run do
+  -- "Loaded Die from Biased Coins"
+  let mut mass := weights.sum
+  let mut g := g
+  for (p, i) in weights.zipIdx do
+    let (z, g') := randNat g 0 mass
+    g := g'
+    if z < p then
+      return (i, g)
+    mass := mass - p
+  return (0, g)
+
+/-- A monad with access to a random entropy source -/
+class MonadRandom ( g : outParam Type ) [RandomGen g] (m : Type → Type) [Monad m] where
+  getGen : m g
+  setGen : g → m Unit
+  generate { α } (f : g → (α × g)) : m α := do
+    let (a, g) := f (← getGen)
+    setGen g
+    return a
+  genRange (lo hi : Nat) : m Nat := generate (randNat · lo hi)
+  genWeighted (weights : Array Nat) : m Nat := generate (randWeighted · weights)
+
+def genRange { g m } [RandomGen g] [Monad m] [MonadRandom g m] := @MonadRandom.genRange g _ m _ _
+def genWeighted { g m } [RandomGen g] [Monad m] [MonadRandom g m] := @MonadRandom.genWeighted g _ m _ _
+
+abbrev MonadStdGen := MonadRandom StdGen
+abbrev RandomT := StateT StdGen
+
+instance { m } [ Monad m ] : MonadStdGen (RandomT m) where
+  getGen := get
+  setGen := set
 
 open Classical
 
@@ -28,6 +62,3 @@ def randomWalk { Gen : Type } [RandomGen Gen] (g : Gen) (n : Nat) (last : Pitch)
       let pitch := interval • li.head!
       pure (pitch :: li, g)
   return li
-
-
-#eval randomWalk (mkStdGen) 5 Pitch.c4 |>.run .default
