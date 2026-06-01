@@ -665,6 +665,18 @@ theorem plain_no_accidental { root : Hep } (p : Pitch) (i : KeyInterval root roo
 
 end KeyInterval
 
+def diatonicFifths (root : Tone) (modus : Hep) : Int :=
+  let eqv := (root.name : Fin 7) - (modus : Fin 7)
+  let baseline := match eqv with
+    | 0 => 0
+    | 1 => 2
+    | 2 => 4
+    | 3 => -1
+    | 4 => 1
+    | 5 => 3
+    | 6 => 5
+  baseline + root.acc.semitones * 12
+
 /-- 7-tone diatonic scale -/
 instance diatonic (root : Tone) (modus : Hep) : Scale Pitch Interval where
   name := s!"{root} {modus.modus}"

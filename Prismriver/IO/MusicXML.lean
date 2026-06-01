@@ -37,8 +37,11 @@ protected def Part.toMusicXML (part : Part) (id : PartId) : Xml.Element :=
             .Element (single "midi-program" $ toString program)
           ]))
       ]
+  let partName := match part.instrument? with
+    | .some i => i.name
+    | .none => toString id
   let content := #[
-    .Element (single "part-name" $ toString id),
+    .Element (single "part-name" partName),
   ] ++ midiInstrument
   .Element
     (name := "score-part")

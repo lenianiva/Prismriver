@@ -33,6 +33,10 @@ instance (g m n) [Monad m] [Monad n] [MonadLift m n] [RandomGen g] [MonadRandom 
 
 def genRange { g } [RandomGen g] { m } [Monad m] [MonadRandom g m] := @MonadRandom.genRange g _ m _ _
 def genWeighted { g } [RandomGen g] { m } [Monad m] [MonadRandom g m] := @MonadRandom.genWeighted g _ m _ _
+-- FIXME: Do not use `Inhabited`. Use nonempty proof instead
+def genChoice { g α } [Inhabited α] [RandomGen g] { m } [Monad m] [MonadRandom g m] (weights : Array Nat) (objects : Array α) : m α := do
+  let i ← genWeighted weights
+  return objects[i]!
 
 abbrev MonadStdGen := MonadRandom StdGen
 abbrev RandomT := StateT StdGen

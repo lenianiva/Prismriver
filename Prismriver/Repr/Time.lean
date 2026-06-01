@@ -1,11 +1,13 @@
+import Std.Data.TreeMap
 import Lean.ToExpr
 
 namespace Prismriver
 
-class Time (T : Type) extends Add T, Sub T, Neg T, SMul Int T, Ord T where
+class Time (T : Type) extends Add T, Sub T, Neg T, SMul Int T, Ord T, Inhabited T where
   zero : T
   /- Maximum time within a bar -/
   bar : T := zero
+  default := zero
 
 section
 
@@ -82,8 +84,47 @@ instance : SMul Int MeasuredTime where
 instance : ShiftRight MeasuredTime where
   shiftRight t s := match s.bars with
     | 0 => ⟨t.bars, t.offset + s.offset⟩
-    | b => ⟨t.bars + s.bars, s.offset⟩
+    | b => ⟨t.bars + b, s.offset⟩
 
 instance : Time MeasuredTime where
   zero := ⟨0, 0⟩
   bar := ⟨1, 0⟩
+
+structure DivisionLine where
+  onBeat : Bool := false
+
+/-- Represents division of a time period. The ways of dividing notes
+characterize music -/
+structure Division (T := MeasuredTime) [Ord T] where
+  lines : Std.TreeMap T DivisionLine
+  --non_empty : lines.isEmpty = false
+
+namespace Division
+
+variable { T } [Time T]
+
+protected def zero : Division T := {
+      lines := Std.TreeMap.empty.insert Time.zero { onBeat := true },
+    }
+instance : Inhabited (Division T) where
+  default := .zero
+
+protected def fromLines ( times : List T ) : Division T := {
+    lines := times.foldl (init := .empty) λ m t =>
+      m.insert t { }
+  }
+protected def times (d : Division T) : List T := d.lines.keys
+protected def timesArray (d : Division T) : Array T := d.lines.keysArray
+protected def minTime (d : Division T) : T := d.lines.minKey!
+protected def maxTime (d : Division T) : T := d.lines.maxKey!
+
+/-- Iterate over sections -/
+protected def forSectionsM { m } [Monad m] (d : Division T) (f : T → T → m Unit) : m Unit := do
+  let _ : Option T := ← d.lines.foldlM (init := .none) λ t? t' _ => do
+    match t? with
+    | .none => pure ()
+    | .some t =>
+      f t t'
+    pure (.some t')
+
+end Division
