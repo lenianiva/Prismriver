@@ -32,7 +32,7 @@ protected def Part.toMusicXML (part : Part) (id : PartId) : Xml.Element :=
       #[
         .Element (.Element
             (name := "midi-instrument")
-            (attributes := (.empty : Xml.Attributes).insert "id" s!"$part{id}-{program}")
+            (attributes := (.empty : Xml.Attributes).insert "id" s!"part{id}-{program}")
             (content := #[
             .Element (single "midi-program" $ toString program)
           ]))

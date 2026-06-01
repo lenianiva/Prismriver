@@ -24,7 +24,7 @@ Usage:
 `lake env lean --run examples/Necrofantasia.lean | alda import -i musicxml | alda play`
 -/
 def main : IO UInt32 := do
-  let (_, { score, .. }) := compositionM.run {} |>.run
+  let score := compose compositionM |>.run
   IO.eprintln s!"{score}"
   let xml := score.toMusicXML
   IO.println s!"{xml}"

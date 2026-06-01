@@ -26,8 +26,13 @@ class MonadRandom ( g : outParam Type ) [RandomGen g] (m : Type → Type) [Monad
   genRange (lo hi : Nat) : m Nat := generate (randNat · lo hi)
   genWeighted (weights : Array Nat) : m Nat := generate (randWeighted · weights)
 
-def genRange { g m } [RandomGen g] [Monad m] [MonadRandom g m] := @MonadRandom.genRange g _ m _ _
-def genWeighted { g m } [RandomGen g] [Monad m] [MonadRandom g m] := @MonadRandom.genWeighted g _ m _ _
+@[always_inline]
+instance (g m n) [Monad m] [Monad n] [MonadLift m n] [RandomGen g] [MonadRandom g m] : MonadRandom g n where
+  getGen := liftM (MonadRandom.getGen : m g)
+  setGen := fun g => liftM (MonadRandom.setGen g : m Unit)
+
+def genRange { g } [RandomGen g] { m } [Monad m] [MonadRandom g m] := @MonadRandom.genRange g _ m _ _
+def genWeighted { g } [RandomGen g] { m } [Monad m] [MonadRandom g m] := @MonadRandom.genWeighted g _ m _ _
 
 abbrev MonadStdGen := MonadRandom StdGen
 abbrev RandomT := StateT StdGen

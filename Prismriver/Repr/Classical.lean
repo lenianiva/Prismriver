@@ -353,6 +353,8 @@ instance : Sub Interval where
   sub x y := { name := x.name - y.name, semitones := x.semitones - y.semitones }
 instance : HMul Int Interval Interval where
   hMul n x := { name := n * x.name, semitones := n * x.semitones }
+instance : HMul Nat Interval Interval where
+  hMul n x := (n : Int) * x
 
 theorem add_name (i j : Interval) : i.name + j.name = (i + j).name := by
   unfold Interval.name
