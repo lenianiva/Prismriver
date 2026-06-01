@@ -17,7 +17,7 @@ def formCounterpoint (notes : List Pitch) (initial : Interval) : List Pitch :=
   let result := formCounterpointAux notes initial []
   result.reverse
 
-#eval formCounterpoint [ (.new .c 4), (.new .d 4), (.new .e 4 .flat), (.new .c 4) ] ((-1) * Interval.p5)
+--#eval formCounterpoint [ (.new .c 4), (.new .d 4), (.new .e 4 .flat), (.new .c 4) ] ((-1) * Interval.p5)
 
 def allowedIntervalMovement (i : Interval) : Prop :=
   i = Interval.p4 ∨ i = Interval.p5

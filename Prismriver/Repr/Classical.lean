@@ -353,6 +353,8 @@ instance : Sub Interval where
   sub x y := { name := x.name - y.name, semitones := x.semitones - y.semitones }
 instance : HMul Int Interval Interval where
   hMul n x := { name := n * x.name, semitones := n * x.semitones }
+instance : HMul Nat Interval Interval where
+  hMul n x := (n : Int) * x
 
 theorem add_name (i j : Interval) : i.name + j.name = (i + j).name := by
   unfold Interval.name
@@ -662,6 +664,18 @@ theorem plain_no_accidental { root : Hep } (p : Pitch) (i : KeyInterval root roo
   simp
 
 end KeyInterval
+
+def diatonicFifths (root : Tone) (modus : Hep) : Int :=
+  let eqv := (root.name : Fin 7) - (modus : Fin 7)
+  let baseline := match eqv with
+    | 0 => 0
+    | 1 => 2
+    | 2 => 4
+    | 3 => -1
+    | 4 => 1
+    | 5 => 3
+    | 6 => 5
+  baseline + root.acc.semitones * 12
 
 /-- 7-tone diatonic scale -/
 instance diatonic (root : Tone) (modus : Hep) : Scale Pitch Interval where

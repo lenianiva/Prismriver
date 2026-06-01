@@ -14,11 +14,14 @@ structure Part where
 inductive ControlEvent
   /-- Indicate change of a bar -/
   | wall
+  /-- Set the number of fifths -/
+  | fifth (n : Int)
   deriving Repr
 
 instance : ToString ControlEvent where
   toString e := match e with
     | .wall => "|"
+    | .fifth n => s!"key{n}"
 
 /-- An event occuring at some particular time -/
 inductive Event (P T) [Time T] where
@@ -109,7 +112,15 @@ protected def forM [Monad M] [BEq T] (score : Score P T) (m : @Context P T _ →
 /-- Combine two scores-/
 protected def merge (score1 score2 : Score P T) : Score P T :=
   {
+    parts := score1.parts.mergeWith score2.parts (mergeFn := λ _key v1 _v2 => v1),
     events := score1.events.mergeWith (λ _ es1 es2 => es1 ++ es2) score2.events
+  }
+/-- Shift the timestamps of scores -/
+protected def offset (score : Score P T) (δ : T) : Score P T :=
+  {
+    score with
+    events := score.events.foldl (init := .empty) λ acc k v =>
+      acc.insert (k + δ) v
   }
 
 end Score
