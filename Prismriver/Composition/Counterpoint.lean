@@ -125,4 +125,10 @@ example : allowedLastNotes [Pitch.new .d 4, Pitch.new .c 4] [Pitch.new .b 3, Pit
   native_decide
   native_decide
 
+example : allowedIntervalMovement Interval.mi2 := by
+  unfold allowedIntervalMovement
+  constructor
+  unfold isStep
+  simp
+
 end Prismriver.Composition
