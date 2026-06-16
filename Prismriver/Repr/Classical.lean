@@ -843,3 +843,39 @@ instance equalTempTuning root modus : Tuning Pitch EqualTemp.Pitch
 example : (diatonic ⟨.d, .natural⟩ .a).pitches = [.new .d 0, .new .e 0, .new .f 0, .new .g 0, .new .a 0, .new .b 0 .flat, .new .c 1] := rfl
 
 abbrev Note := @Prismriver.Note Pitch MeasuredTime
+
+/-- Japanese In (Sakura) pentatonic scale -/
+instance japanese_in (root : Tone) : Scale Pitch Interval where
+  name := s!"in-{root}"
+
+  zero := Interval.zero
+  fundamental := Interval.octave
+
+  pitches :=
+    let root : Pitch := .new root.name 0 root.acc
+    [
+      root,
+      Interval.mi2 • root,
+      Interval.p4 • root,
+      Interval.p5 • root,
+      Interval.mi6 • root,
+    ]
+  add_zero := Torsor.add_zero
+  add_comm := Torsor.add_comm
+  add_assoc := Torsor.add_assoc
+  add_left_neg := Torsor.add_left_neg
+  sub_neg := Torsor.sub_neg
+  neg_neg := Torsor.neg_neg
+  zero_mul := Torsor.zero_mul
+  sub_eq_add_neg := Torsor.sub_eq_add_neg
+  smul_div := Torsor.smul_div
+  neg_add := Torsor.neg_add
+  mul_distrib := Torsor.mul_distrib
+  neg_mul := Torsor.neg_mul
+  smul_zero := Torsor.smul_zero
+  smul_assoc := Torsor.smul_assoc
+  div_smul_self := Torsor.div_smul_self
+  add_right_neg := Torsor.add_right_neg
+  neg_sub := Torsor.neg_sub
+
+example : (japanese_in ⟨.d, .natural⟩).pitches = [.new .d 0, .new .e 0 .flat, .new .g 0, .new .a 0, .new .b 0 .flat] := rfl
