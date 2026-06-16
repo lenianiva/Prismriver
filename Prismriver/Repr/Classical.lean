@@ -231,7 +231,7 @@ private theorem nameDistanceAux_image (total : Nat) (key : Fin 7) (n m : Nat)
     refine Eq.symm (Fin.eq_of_val_eq ?_)
     simp
     refine Nat.add_mod_eq_add_mod_left n ?_
-    omega
+    grind
 
 private theorem nameDistanceAux_sub_eq_addNeg (total : Nat) (key : Fin 7) (n m : Int)
   : nameDistanceAux total key (n - m).toNat = nameDistanceAux total key ((n + -(m)).toNat) := by
@@ -677,25 +677,9 @@ def diatonicFifths (root : Tone) (modus : Hep) : Int :=
     | 6 => 5
   baseline + root.acc.semitones * 12
 
-instance chromatic : Scale Pitch Interval where
-  name := "chromatic"
+@[default_instance]
+instance : Torsor Pitch Interval where
   zero := Interval.zero
-  fundamental := Interval.octave
-
-  pitches := [
-    .new .c 0,
-    .new .c 0 .sharp,
-    .new .d 0,
-    .new .d 0 .sharp,
-    .new .e 0,
-    .new .f 0,
-    .new .f 0 .sharp,
-    .new .g 0,
-    .new .g 0 .sharp,
-    .new .a 0,
-    .new .a 0 .sharp,
-    .new .b 0,
-  ]
   add_zero := by
     unfold HAdd.hAdd instHAdd Add.add Interval.instAdd Interval.zero
     simp
@@ -706,7 +690,7 @@ instance chromatic : Scale Pitch Interval where
     apply Interval.add_left_neg
   add_assoc := Interval.add_assoc
   zero_mul _ := by
-    unfold HMul.hMul Interval.instHMulInt instHMul
+    unfold Interval.instHMulInt HMul.hMul
     apply Interval.ext
     . simp
       apply Int.zero_mul
@@ -732,7 +716,7 @@ instance chromatic : Scale Pitch Interval where
     intro j
     rw [Interval.neg_add]
   neg_mul x _n := by
-    unfold HMul.hMul Interval.instHMulInt instHMul
+    unfold Interval.instHMulInt HMul.hMul
     simp
     apply Interval.ext
     . simp only [Neg.neg]
@@ -740,7 +724,7 @@ instance chromatic : Scale Pitch Interval where
     . simp only [Neg.neg]
       exact Int.neg_mul _n x.semitones
   mul_distrib := by
-    unfold HMul.hMul Interval.instHMulInt instHMul
+    unfold Interval.instHMulInt HMul.hMul
     intro n m i
     simp
     apply Interval.ext
@@ -792,6 +776,25 @@ instance chromatic : Scale Pitch Interval where
    rw [Accidental.sub_Accidental_semitones]
    grind
 
+instance chromatic : Scale Pitch Interval where
+  name := "chromatic"
+  fundamental := Interval.octave
+
+  pitches := [
+    .new .c 0,
+    .new .c 0 .sharp,
+    .new .d 0,
+    .new .d 0 .sharp,
+    .new .e 0,
+    .new .f 0,
+    .new .f 0 .sharp,
+    .new .g 0,
+    .new .g 0 .sharp,
+    .new .a 0,
+    .new .a 0 .sharp,
+    .new .b 0,
+  ]
+
 /-- 7-tone diatonic scale -/
 instance diatonic (root : Tone) (modus : Hep) : Scale Pitch Interval where
   name := s!"{root} {modus.modus}"
@@ -808,24 +811,23 @@ instance diatonic (root : Tone) (modus : Hep) : Scale Pitch Interval where
     let shiftModus := List.rotateLeft spaces modus.toNat
       |>.take i.toNat |>.sum
     { name, acc := ⟨shiftModus - shiftNominal + root.acc.semitones⟩ }
-
-  add_zero := chromatic.add_zero
-  add_comm := chromatic.add_comm
-  add_left_neg := chromatic.add_left_neg
-  add_right_neg := chromatic.add_right_neg
-  add_assoc := chromatic.add_assoc
-  zero_mul := chromatic.zero_mul
-  neg_sub := chromatic.neg_sub
-  sub_neg := chromatic.sub_neg
-  sub_eq_add_neg := chromatic.sub_eq_add_neg
-  neg_neg := chromatic.neg_neg
-  neg_add := chromatic.neg_add
-  neg_mul := chromatic.neg_mul
-  mul_distrib := chromatic.mul_distrib
-  smul_zero := chromatic.smul_zero
-  smul_assoc := chromatic.smul_assoc
-  smul_div := chromatic.smul_div
-  div_smul_self := chromatic.div_smul_self
+  add_zero := Torsor.add_zero
+  add_comm := Torsor.add_comm
+  add_assoc := Torsor.add_assoc
+  add_left_neg := Torsor.add_left_neg
+  sub_neg := Torsor.sub_neg
+  neg_neg := Torsor.neg_neg
+  zero_mul := Torsor.zero_mul
+  sub_eq_add_neg := Torsor.sub_eq_add_neg
+  smul_div := Torsor.smul_div
+  neg_add := Torsor.neg_add
+  mul_distrib := Torsor.mul_distrib
+  neg_mul := Torsor.neg_mul
+  smul_zero := Torsor.smul_zero
+  smul_assoc := Torsor.smul_assoc
+  div_smul_self := Torsor.div_smul_self
+  add_right_neg := Torsor.add_right_neg
+  neg_sub := Torsor.neg_sub
 
 /-- Equal temperament tuning of diatonic scales -/
 instance equalTempTuning root modus : Tuning Pitch EqualTemp.Pitch
