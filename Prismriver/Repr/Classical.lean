@@ -677,23 +677,25 @@ def diatonicFifths (root : Tone) (modus : Hep) : Int :=
     | 6 => 5
   baseline + root.acc.semitones * 12
 
-/-- 7-tone diatonic scale -/
-instance diatonic (root : Tone) (modus : Hep) : Scale Pitch Interval where
-  name := s!"{root} {modus.modus}"
-
+instance chromatic : Scale Pitch Interval where
+  name := "chromatic"
   zero := Interval.zero
-
   fundamental := Interval.octave
-  pitches := List.finRange 7 |>.map λ i =>
-    let name := i.toNat + root.name.toNat
-    -- Nominal shift if the letters are read directly with the same accidentals
-    let shiftNominal := List.rotateLeft spaces root.name.toNat
-      |>.take i.toNat |>.sum
-    -- Actual shift determined by modus
-    let shiftModus := List.rotateLeft spaces modus.toNat
-      |>.take i.toNat |>.sum
-    { name, acc := ⟨shiftModus - shiftNominal + root.acc.semitones⟩ }
 
+  pitches := [
+    .new .c 0,
+    .new .c 0 .sharp,
+    .new .d 0,
+    .new .d 0 .sharp,
+    .new .e 0,
+    .new .f 0,
+    .new .f 0 .sharp,
+    .new .g 0,
+    .new .g 0 .sharp,
+    .new .a 0,
+    .new .a 0 .sharp,
+    .new .b 0,
+  ]
   add_zero := by
     unfold HAdd.hAdd instHAdd Add.add Interval.instAdd Interval.zero
     simp
@@ -789,6 +791,41 @@ instance diatonic (root : Tone) (modus : Hep) : Scale Pitch Interval where
    rw [Int.add_comm]
    rw [Accidental.sub_Accidental_semitones]
    grind
+
+/-- 7-tone diatonic scale -/
+instance diatonic (root : Tone) (modus : Hep) : Scale Pitch Interval where
+  name := s!"{root} {modus.modus}"
+
+  zero := Interval.zero
+  fundamental := Interval.octave
+
+  pitches := List.finRange 7 |>.map λ i =>
+    let name := i.toNat + root.name.toNat
+    -- Nominal shift if the letters are read directly with the same accidentals
+    let shiftNominal := List.rotateLeft spaces root.name.toNat
+      |>.take i.toNat |>.sum
+    -- Actual shift determined by modus
+    let shiftModus := List.rotateLeft spaces modus.toNat
+      |>.take i.toNat |>.sum
+    { name, acc := ⟨shiftModus - shiftNominal + root.acc.semitones⟩ }
+
+  add_zero := chromatic.add_zero
+  add_comm := chromatic.add_comm
+  add_left_neg := chromatic.add_left_neg
+  add_right_neg := chromatic.add_right_neg
+  add_assoc := chromatic.add_assoc
+  zero_mul := chromatic.zero_mul
+  neg_sub := chromatic.neg_sub
+  sub_neg := chromatic.sub_neg
+  sub_eq_add_neg := chromatic.sub_eq_add_neg
+  neg_neg := chromatic.neg_neg
+  neg_add := chromatic.neg_add
+  neg_mul := chromatic.neg_mul
+  mul_distrib := chromatic.mul_distrib
+  smul_zero := chromatic.smul_zero
+  smul_assoc := chromatic.smul_assoc
+  smul_div := chromatic.smul_div
+  div_smul_self := chromatic.div_smul_self
 
 /-- Equal temperament tuning of diatonic scales -/
 instance equalTempTuning root modus : Tuning Pitch EqualTemp.Pitch
