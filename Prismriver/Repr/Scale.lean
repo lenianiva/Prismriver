@@ -15,14 +15,7 @@ raw frequency scale. This would represent tuning. -/
 class Tuning (P₁ P₂ : Type) (src : PseudoScale P₁) (dst : PseudoScale P₂) where
   liftPitch : P₁ → P₂
 
-/-- A scale with a repeating fundamental interval. Each pitch in the scale is
-represented as a tone along with a multiple of the fundamental interval. -/
-class Scale (P I : Type) extends PseudoScale P, Add I, Sub I, HMul Int I I, Neg I, HSMul I P P, HDiv P P I where
-  /-- The fundamental interval (usually an octave) -/
-  fundamental : I
-  /-- List all notes in the 0th interval. e.g. For C major, this would be C,D,E,F,G,A,B -/
-  pitches : List P
-
+class Torsor (P I : Type) extends Add I, Sub I, HMul Int I I, Neg I, HSMul I P P, HDiv P P I where
   zero : I
   add_zero (i : I) : i + zero = i
   add_comm (i j : I) : i + j = j + i
@@ -45,6 +38,14 @@ class Scale (P I : Type) extends PseudoScale P, Add I, Sub I, HMul Int I I, Neg 
   smul_assoc (p : P) (i j : I) : j • (i • p) = (i + j) • p
   smul_div (p q : P) : (q / p) • p = q
   div_smul_self (i : I) (p : P) : (i • p) / p = i
+
+/-- A scale with a repeating fundamental interval. Each pitch in the scale is
+represented as a tone along with a multiple of the fundamental interval. -/
+class Scale (P I : Type) extends PseudoScale P, Torsor P I where
+  /-- The fundamental interval (usually an octave) -/
+  fundamental : I
+  /-- List all notes in the 0th interval. e.g. For C major, this would be C,D,E,F,G,A,B -/
+  pitches : List P
 
 variable { P I }
 
@@ -92,10 +93,7 @@ namespace EqualTemp
 abbrev Pitch := Int
 abbrev Interval := Int
 
-instance scale (n : Nat) : Scale Pitch Interval where
-  name := s!"{n}-ET"
-  fundamental := n
-  pitches := List.finRange n |>.map (·.toNat)
+instance : Torsor Pitch Interval where
   hSMul i j := i + j
   hDiv p q := p - q
 
@@ -121,6 +119,11 @@ instance scale (n : Nat) : Scale Pitch Interval where
     apply Int.sub_add_cancel
   div_smul_self i p := by
     rw [Int.add_sub_cancel]
+
+instance scale (n : Nat) : Scale Pitch Interval where
+  name := s!"{n}-ET"
+  fundamental := n
+  pitches := List.finRange n |>.map (·.toNat)
 
 theorem n_et_notes (n : Nat) : (scale n).pitches.length = n := by
   unfold Scale.pitches
