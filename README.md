@@ -1,5 +1,7 @@
 # Prismriver
 
+[![arXiv](https://img.shields.io/badge/cs.LO-2606.19936-b31b1b?logo=arxiv&logoColor=red)](https://arxiv.org/abs/2606.19936)
+
 A Music formalization library and DSL in Lean 4 for:
 
 1. Formalization of music theory including pitches, accidentals, scales, chords,
