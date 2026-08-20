@@ -1,4 +1,5 @@
 import Prismriver.Composition.Basic
+import Prismriver.Composition.Motif
 import Prismriver.Composition.ChordProgression
 import Prismriver.Composition.Counterpoint
 import Prismriver.Composition.Random
