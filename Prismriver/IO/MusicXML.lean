@@ -63,7 +63,7 @@ protected def Pitch.toMusicXML (pitch : Classical.Pitch) : Xml.Element :=
     (attributes := .empty)
     (content := content)
 
-/-- Convert a note -/
+/-- Convert a note to MusicXML using a common divisions number -/
 protected def Note.toMusicXML (note : Classical.Note) (duration : Nat) : Xml.Element :=
   let content := #[
     .Element (Pitch.toMusicXML note.pitch),
@@ -75,6 +75,19 @@ protected def Note.toMusicXML (note : Classical.Note) (duration : Nat) : Xml.Ele
     (name := "note")
     (attributes := .empty)
     (content := content)
+
+protected def Event.toMusicXML (event : Classical.Event) (duration : Nat)
+  : Option Xml.Element := match event with
+  | .note n _ => n.toMusicXML duration
+  | .control (.key n) => .some <| .Element
+      (name := "attributes")
+      (attributes := .empty)
+      (content := #[
+        .Element (.Element (name := "key") (attributes := .empty) (content := #[
+          .Element (single "fifths" $ toString n)
+        ]))
+      ])
+  | .control .wall => .none
 
 private def rest (duration : Nat) : Xml.Element :=
   let content := #[
@@ -98,9 +111,10 @@ private def backup (duration : Nat) : Xml.Element :=
     (content := content)
 
 private structure Measure where
-  notes : List (MeasuredTime × Classical.Note) := []
+  -- List of all events in the measure
+  events : List (MeasuredTime × Classical.Event) := []
 
-/-- Guarded LCM -/
+/-- Guarded LCM which hands 0's as a passthrough case -/
 private def glcm : Nat → Nat → Nat
   | 0,n => n
   | n,0 => n
@@ -108,8 +122,10 @@ private def glcm : Nat → Nat → Nat
 
 protected def Measure.toMusicXML (measure : Measure) (number : Nat) : Xml.Element :=
   -- determine minimal number of divisions of quarter notes
-  let divisions := measure.notes.foldl (init := (4 : Nat)) λ d (time, { duration, .. }) =>
-    glcm (glcm duration.offset.den d) time.offset.den
+  let divisions := measure.events.foldl (init := (4 : Nat)) λ d (time, event) =>
+    match event.duration? with
+    | .some duration => glcm (glcm duration.offset.den d) time.offset.den
+    | .none => glcm d time.offset.den
 
   let header := .Element
     (name := "attributes")
@@ -117,10 +133,10 @@ protected def Measure.toMusicXML (measure : Measure) (number : Nat) : Xml.Elemen
     (content := #[
     .Element (single "divisions" $ toString (divisions / 4)),
   ])
-  let contentM : StateM Nat (List Xml.Content) := measure.notes.foldlM (init := [.Element header])
-    λ elements (time, note) => do
+  let contentM : StateM Nat (List Xml.Content) := measure.events.foldlM (init := [.Element header])
+    λ elements (time, event) => do
     let t := (time.offset * divisions).num.toNat
-    let d := (note.duration.offset * divisions).num.toNat
+    let d := event.duration?.map (λ (duration : MeasuredTime) => (duration.offset * divisions).num.toNat) |>.getD 0
     -- Insert necessary backoff
     let current ← get
     let pad := if t = current then
@@ -130,7 +146,9 @@ protected def Measure.toMusicXML (measure : Measure) (number : Nat) : Xml.Elemen
       else
         [.Element (rest (t - current))]
     -- Insert note itself
-    let notes := [.Element (note.toMusicXML d)]
+    let notes := match event.toMusicXML d with
+      | .some elem => [.Element elem]
+      | .none => []
     -- Move the time
     modify (· + d)
     pure (elements ++ pad ++ notes)
@@ -147,16 +165,21 @@ private structure OutputState where
   /-- Measure number -/
   measureN : Nat := 0
   parts : Std.TreeMap PartId (Std.TreeMap Nat Measure)
-  measure : List Classical.Note := []
 
-private def OutputState.insertNote (σ : OutputState) (partId : PartId)
-  (time : MeasuredTime) (elem : Classical.Note) : OutputState :=
-  let es := [(time, elem)]
+/-- If a part id is not specified, insert into all parts -/
+private def OutputState.insertEvent (σ : OutputState)
+  (time : MeasuredTime) (event : Classical.Event) : OutputState :=
+  let es := [(time, event)]
+  let parts := match event.partId? with
+    | .some partId => σ.parts.modify partId λ part => part.alter σ.measureN λ
+      | .none => .some { events := es }
+      | .some measure => .some { events := measure.events ++ es }
+    | .none => σ.parts.map λ _partId part => part.alter σ.measureN λ
+      | .none => .some { events := es }
+      | .some measure => .some { events := measure.events ++ es }
   {
     σ with
-    parts := σ.parts.modify partId λ part => part.alter σ.measureN λ
-      | .none => .some { notes := es }
-      | .some measure => .some { notes := measure.notes ++ es }
+    parts
   }
 
 /-- Export a score to timewise MusicXML form -/
@@ -167,11 +190,8 @@ protected def Score.toMusicXML (score : Classical.Score) (metadata : Metadata :=
     let σ ← get
     if σ.time.bars ≠ time.bars then
       modify λ σ => { σ with measureN := time.bars.toNat }
-    context.newEvents.forM λ
-      | .note _ .none => pure ()
-      | .note note (.some partId) =>
-        modify (OutputState.insertNote · partId time note)
-      | _ => pure ()
+    context.newEvents.forM λ e =>
+      modify (OutputState.insertEvent · time  e)
 
   let (_, outputState) := partsM.run {
       parts := score.parts.keys.foldl (init := .empty) λ acc key => acc.insert key .empty

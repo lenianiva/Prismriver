@@ -11,6 +11,7 @@ def compositionM : Classical.CompositionT Id Unit := do
   addPart 0 { instrument? := .some Instrument.violin }
   let t14 : MeasuredTime := mkRat 1 4
   let t11 : MeasuredTime := mkRat 1 1
+  addEvent (.control (.key 0))
   addPianoNote ⟨.new .e 4, t14⟩
   addPianoNote ⟨.new .c 5, t14⟩
   addPianoNote ⟨.new .b 4, t14⟩
