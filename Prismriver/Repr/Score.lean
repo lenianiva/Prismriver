@@ -40,6 +40,10 @@ protected def Event.duration? { P T } [Time T] : Event P T → Option T
   | .note { duration, .. } _ => duration
   | .control .. => .none
 
+protected def Event.partId? { P T } [Time T] : Event P T → Option PartId
+  | .note _ part? => part?
+  | _ => .none
+
 /-- A music score, stored in "timewise" format for simultaneity analysis -/
 structure Score (P T) [Time T] where
   /-- List of part ids -/
@@ -127,5 +131,7 @@ end Score
 
 /-- Score with notes being in et12 -/
 abbrev EqualTemp.Score12 := @Prismriver.Score Int MeasuredTime
+
 /-- Score with classical notes -/
-abbrev Classical.Score := @Prismriver.Score Pitch MeasuredTime
+abbrev Classical.Score := @Prismriver.Score Classical.Pitch MeasuredTime
+abbrev Classical.Event := @Prismriver.Event Classical.Pitch MeasuredTime
