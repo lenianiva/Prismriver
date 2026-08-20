@@ -11,7 +11,7 @@ open Lean
 open Dihedral
 
 inductive Parity : Type | major | minor
-deriving DecidableEq, Repr, Fintype
+deriving DecidableEq, Repr
 
 instance : ToString Parity where
   toString | .major => "major" | .minor => "minor"
