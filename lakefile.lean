@@ -10,7 +10,6 @@ lean_exe prismriver where
 @[default_target]
 lean_lib Prismriver where
   roots := #[`Prismriver]
-  precompileModules := true
 lean_lib Test {
 }
 @[test_driver]
