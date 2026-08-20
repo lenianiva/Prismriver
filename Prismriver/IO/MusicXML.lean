@@ -83,7 +83,9 @@ protected def Event.toMusicXML (event : Classical.Event) (duration : Nat)
       (name := "attributes")
       (attributes := .empty)
       (content := #[
-        .Element (single "fifth" $ toString n)
+        .Element (.Element (name := "key") (attributes := .empty) (content := #[
+          .Element (single "fifths" $ toString n)
+        ]))
       ])
   | .control .wall => .none
 
