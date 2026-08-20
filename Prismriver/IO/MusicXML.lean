@@ -80,7 +80,7 @@ protected def Event.toMusicXML (event : Classical.Event) (duration : Nat)
   : Option Xml.Element := match event with
   | .note n _ => n.toMusicXML duration
   | .control (.fifth n) => .some <| .Element
-      (name := "")
+      (name := "attributes")
       (attributes := .empty)
       (content := #[
         .Element (single "fifth" $ toString n)
@@ -144,7 +144,7 @@ protected def Measure.toMusicXML (measure : Measure) (number : Nat) : Xml.Elemen
       else
         [.Element (rest (t - current))]
     -- Insert note itself
-    let notes := match event.toMusicXML divisions with
+    let notes := match event.toMusicXML d with
       | .some elem => [.Element elem]
       | .none => []
     -- Move the time
@@ -163,7 +163,6 @@ private structure OutputState where
   /-- Measure number -/
   measureN : Nat := 0
   parts : Std.TreeMap PartId (Std.TreeMap Nat Measure)
-  measure : List Classical.Note := []
 
 /-- If a part id is not specified, insert into all parts -/
 private def OutputState.insertEvent (σ : OutputState)

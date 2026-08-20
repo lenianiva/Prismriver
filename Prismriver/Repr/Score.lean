@@ -69,7 +69,7 @@ namespace Score
 protected def addEvent (score : Score P T) (time : T) (event : Event P T)
   : Score P T :=
   let events' := score.events.insertIfNew time []
-  let events'' := events'.modify time λ li => event :: li
+  let events'' := events'.modify time λ li => li ++ [event]
   { score with events := events'' }
 
 structure Context where
