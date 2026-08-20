@@ -79,7 +79,7 @@ protected def Note.toMusicXML (note : Classical.Note) (duration : Nat) : Xml.Ele
 protected def Event.toMusicXML (event : Classical.Event) (duration : Nat)
   : Option Xml.Element := match event with
   | .note n _ => n.toMusicXML duration
-  | .control (.fifth n) => .some <| .Element
+  | .control (.key n) => .some <| .Element
       (name := "attributes")
       (attributes := .empty)
       (content := #[

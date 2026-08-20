@@ -14,14 +14,14 @@ structure Part where
 inductive ControlEvent
   /-- Indicate change of a bar -/
   | wall
-  /-- Set the number of fifths -/
-  | fifth (n : Int)
+  /-- Set the key -/
+  | key (n : Int)
   deriving Repr
 
 instance : ToString ControlEvent where
   toString e := match e with
     | .wall => "|"
-    | .fifth n => s!"key{n}"
+    | .key n => s!"key{n}"
 
 /-- An event occuring at some particular time -/
 inductive Event (P T) [Time T] where
