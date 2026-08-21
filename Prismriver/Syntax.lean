@@ -1,4 +1,5 @@
 import Prismriver.Repr.Classical
+import Prismriver.Repr.Score
 import Lean.Elab
 
 namespace Prismriver.Syntax
@@ -164,7 +165,7 @@ def play (aldaCode : String) : IO UInt32 := do
   let flag ← hLock.tryLock
   if !flag then
     return 0
-  let ch ← IO.Process.spawn { cmd := "alda", args := #["play", "--code", aldaCode] }
+  let ch ← IO.Process.spawn { cmd := "alda", args := #["play", "--wait", "--code", aldaCode] }
   let ret ← ch.wait
   hLock.unlock
   return ret
@@ -179,7 +180,7 @@ elab "#play" e:term : command => do
 
   let notes := " ".intercalate $ notes.map λ note =>
     s!"o{note.pitch.octave + 4} {note.pitch.hep}"
-  let code := s!"{notes}"
+  let code := s!"piano: {notes}"
 
   logInfo s!"{code}"
   let ret ← play code
