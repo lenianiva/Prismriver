@@ -14,14 +14,14 @@ structure Part where
 inductive ControlEvent
   /-- Indicate change of a bar -/
   | wall
-  /-- Set the number of fifths -/
-  | fifth (n : Int)
+  /-- Set the key -/
+  | key (n : Int)
   deriving Repr
 
 instance : ToString ControlEvent where
   toString e := match e with
     | .wall => "|"
-    | .fifth n => s!"key{n}"
+    | .key n => s!"key{n}"
 
 /-- An event occuring at some particular time -/
 inductive Event (P T) [Time T] where
@@ -39,6 +39,10 @@ instance [ToString P] [ToString T] [Time T] : ToString (Event P T) where
 protected def Event.duration? { P T } [Time T] : Event P T → Option T
   | .note { duration, .. } _ => duration
   | .control .. => .none
+
+protected def Event.partId? { P T } [Time T] : Event P T → Option PartId
+  | .note _ part? => part?
+  | _ => .none
 
 /-- A music score, stored in "timewise" format for simultaneity analysis -/
 structure Score (P T) [Time T] where
@@ -65,7 +69,7 @@ namespace Score
 protected def addEvent (score : Score P T) (time : T) (event : Event P T)
   : Score P T :=
   let events' := score.events.insertIfNew time []
-  let events'' := events'.modify time λ li => event :: li
+  let events'' := events'.modify time λ li => li ++ [event]
   { score with events := events'' }
 
 structure Context where
@@ -127,5 +131,7 @@ end Score
 
 /-- Score with notes being in et12 -/
 abbrev EqualTemp.Score12 := @Prismriver.Score Int MeasuredTime
+
 /-- Score with classical notes -/
-abbrev Classical.Score := @Prismriver.Score Pitch MeasuredTime
+abbrev Classical.Score := @Prismriver.Score Classical.Pitch MeasuredTime
+abbrev Classical.Event := @Prismriver.Event Classical.Pitch MeasuredTime
