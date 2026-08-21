@@ -61,17 +61,15 @@ def markOctaveUp : Char := '\''
 def markOctaveDown : Char := ','
 
 abbrev octaveKind : SyntaxNodeKind := `octave
-def octaveFn : Parser.ParserFn :=
-  Parser.nodeFn octaveKind <|
-  Parser.rawFn (trailingWs := true) fun ctx s =>
-    let slice := ctx.substring s.pos ctx.endPos
-    let slice' := slice.dropWhile (λ ch => ch == markOctaveUp || ch == markOctaveDown)
-    if slice == slice' then
-      s.mkErrorsAt [""] s.pos
-    else
-      s.setPos slice'.startPos
 def octaveNoAntiquot : Parser.Parser where
-  fn := octaveFn
+  fn := Parser.nodeFn octaveKind <|
+    Parser.rawFn (trailingWs := true) fun ctx s =>
+      let slice := ctx.substring s.pos ctx.endPos
+      let slice' := slice.dropWhile (λ ch => ch == markOctaveUp || ch == markOctaveDown)
+      if slice == slice' then
+        s.mkErrorsAt [""] s.pos
+      else
+        s.setPos slice'.startPos
 open PrettyPrinter Formatter in
 @[combinator_formatter octaveNoAntiquot]
 def octaveNoAntiquot.formatter : Formatter :=
@@ -81,19 +79,39 @@ open PrettyPrinter Parenthesizer in
 def octaveNoAntiquot.parenthesizer : Parenthesizer := visitToken
 def octave := Parser.withAntiquot (Parser.mkAntiquot "octave" octaveKind) octaveNoAntiquot
 
+abbrev dottedKind : SyntaxNodeKind := `dotted
+def dottedNoAntiquot : Parser.Parser where
+  fn := Parser.nodeFn dottedKind <|
+    Parser.rawFn (trailingWs := true) fun ctx s =>
+      let slice := ctx.substring s.pos ctx.endPos
+      let slice' := slice.dropWhile (· == '.')
+      --if slice == slice' then
+      --  s.mkErrorsAt [""] s.pos
+      --else
+      s.setPos slice'.startPos
+open PrettyPrinter Formatter in
+@[combinator_formatter dottedNoAntiquot]
+def dottedNoAntiquot.formatter : Formatter :=
+  visitAtom dottedKind
+open PrettyPrinter Parenthesizer in
+@[combinator_parenthesizer dottedNoAntiquot]
+def dottedNoAntiquot.parenthesizer : Parenthesizer := visitToken
+def dotted := Parser.withAntiquot (Parser.mkAntiquot "dotted" dottedKind) dottedNoAntiquot
+
 -- A music note is a pitch plus an optional duration
-syntax hep optional(noWs accidental) optional(noWs octave) optional(num) : music_note
+syntax hep optional(noWs accidental) optional(noWs octave) optional(noWs num optional(dotted)) : music_note
 
 declare_syntax_cat music_seq
 syntax music_note* : music_seq
 
 def elabNote (stx : TSyntax `music_note) : Elab.Term.TermElabM Expr := do
-  let `(music_note| $h:hep$[$acc?:accidental]?$[$oct?:octave]?$[$d:num]?) := stx
+  let `(music_note| $h:hep$[$acc?:accidental]?$[$oct?:octave]?$[$d?:num$dotted?:dotted]?) := stx
     | Elab.throwUnsupportedSyntax
   let h := (h.raw.isLit? hepKind).getD "c"
   let acc := acc?.bind (·.raw.isLit? accidentalKind) |>.getD ""
   let oct := oct?.bind (·.raw.isLit? octaveKind) |>.getD ""
-  let d : MeasuredTime := mkRat 1 (d.map (·.getNat) |>.getD 4)
+  let dots := dotted?.bind (·.raw.isLit? dottedKind) |>.getD "" |>.length
+  let d : MeasuredTime := (mkRat 1 (d?.map (·.getNat) |>.getD 4)) * (2 - mkRat 1 (2 ^ dots))
   let .some pitch := parsePitch h acc oct
     | Elab.throwUnsupportedSyntax
   let note ←
@@ -134,7 +152,9 @@ elab "♩[" seq:music_seq "]" : term <= type => do
   let notes ← notes.mapM elabNote
   Meta.mkListLit noteType notes.toList
 
-#eval (♩[ cs5 d e f ] : List @Classical.Note)
+example : ♩[ c4 ] == [ (⟨.new .c 0, 0, mkRat 1 4⟩ : @Classical.Note) ] := by decide
+example : ♩[ d4.. ] == [ (⟨.new .d 0, 0, mkRat 7 16⟩ : @Classical.Note) ] := by decide
+#eval (♩[ cs5 d4.. e f ] : List @Classical.Note)
 #eval (♩[ c'' d e f5 ] : List @Classical.Note)
 #eval (♩[ c,,,, d e f5 ] : List @Classical.Note)
 
@@ -165,5 +185,3 @@ elab "#play" e:term : command => do
   let ret ← play code
   if ret ≠ 0 then
     throwError s!"Subprocess failed: {ret}"
-
---#play ♩[e4 c'4 b4 d4 e2]
