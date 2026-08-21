@@ -504,13 +504,22 @@ instance : HSMul Interval Pitch Pitch where
 --    { name, acc := { semitones := i.semitones - Δsemitones} }
    { name, acc := { semitones := (p.acc.semitones + i.semitones) - Δsemitones} }
 
-open Interval in
+open Interval
+/-- Creates a major chord from some pitch -/
 def majorTriad (p : Pitch) : List Pitch := [
     p, ma3 • p, p5 • p
   ]
-open Interval in
+/-- Creates a minor chord from some other pitch -/
 def minorTriad (p : Pitch) : List Pitch := [
     p, mi3 • p, p5 • p
+  ]
+/-- Suspeneded chord 2 -/
+def sus2Triad (p : Pitch) : List Pitch := [
+    p, ma2 • p, p5 • p
+  ]
+/-- Suspeneded chord 4 -/
+def sus4Triad (p : Pitch) : List Pitch := [
+    p, p4 • p, p5 • p
   ]
 example : Interval.octave • (Pitch.new .c 4) = (Pitch.new .c 5) := rfl
 example : Interval.p5 • (Pitch.new .c 4) = (Pitch.new .g 4) := rfl
