@@ -521,6 +521,12 @@ def sus2Triad (p : Pitch) : List Pitch := [
 def sus4Triad (p : Pitch) : List Pitch := [
     p, p4 • p, p5 • p
   ]
+def major7 (p : Pitch) : List Pitch := [
+    p, ma3 • p, p5 • p, ma7 • p
+  ]
+def minor7 (p : Pitch) : List Pitch := [
+    p, mi3 • p, p5 • p, mi7 • p
+  ]
 example : Interval.octave • (Pitch.new .c 4) = (Pitch.new .c 5) := rfl
 example : Interval.p5 • (Pitch.new .c 4) = (Pitch.new .g 4) := rfl
 example : Interval.p5 • (Pitch.new .b 5) = (Pitch.new .f 6 .sharp) := rfl
