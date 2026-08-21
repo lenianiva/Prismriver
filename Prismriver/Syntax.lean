@@ -6,6 +6,11 @@ namespace Prismriver.Syntax
 
 open Lean Prismriver.Classical
 
+private meta def syntaxInt (n : Int) : MacroM (TSyntax `term) := do
+  match n with
+  | .ofNat n => `(Int.ofNat $(Syntax.mkNumLit <| toString n))
+  | .negSucc n => `(Int.negSucc $(Syntax.mkNumLit <| toString n))
+
 declare_syntax_cat music_note
 
 abbrev hepKind : SyntaxNodeKind := `hep
@@ -38,17 +43,15 @@ def markSharp : List Char := ['s', '♯']
 def markFlat : List Char := ['f', '♭']
 
 abbrev accidentalKind : SyntaxNodeKind := `accidental
-def accidentalFn : Parser.ParserFn :=
-  Parser.nodeFn accidentalKind <|
-  Parser.rawFn (trailingWs := true) fun ctx s =>
-    let slice := ctx.substring s.pos ctx.endPos
-    let slice' := slice.dropWhile (λ ch => markSharp.contains ch || markFlat.contains ch)
-    if slice == slice' then
-      s.mkErrorsAt [""] s.pos
-    else
-      s.setPos slice'.startPos
 def accidentalNoAntiquot : Parser.Parser where
-  fn := accidentalFn
+  fn := Parser.nodeFn accidentalKind <|
+    Parser.rawFn (trailingWs := true) fun ctx s =>
+      let slice := ctx.substring s.pos ctx.endPos
+      let slice' := slice.dropWhile (λ ch => markSharp.contains ch || markFlat.contains ch)
+      if slice == slice' then
+        s.mkErrorsAt [""] s.pos
+      else
+        s.setPos slice'.startPos
 open PrettyPrinter Formatter in
 @[combinator_formatter accidentalNoAntiquot]
 def accidentalNoAntiquot.formatter : Formatter :=
@@ -86,10 +89,10 @@ def dottedNoAntiquot : Parser.Parser where
     Parser.rawFn (trailingWs := true) fun ctx s =>
       let slice := ctx.substring s.pos ctx.endPos
       let slice' := slice.dropWhile (· == '.')
-      --if slice == slice' then
-      --  s.mkErrorsAt [""] s.pos
-      --else
-      s.setPos slice'.startPos
+      if slice == slice' then
+        s.mkErrorsAt [""] s.pos
+      else
+        s.setPos slice'.startPos
 open PrettyPrinter Formatter in
 @[combinator_formatter dottedNoAntiquot]
 def dottedNoAntiquot.formatter : Formatter :=
@@ -100,36 +103,23 @@ def dottedNoAntiquot.parenthesizer : Parenthesizer := visitToken
 def dotted := Parser.withAntiquot (Parser.mkAntiquot "dotted" dottedKind) dottedNoAntiquot
 
 -- A music note is a pitch plus an optional duration
-syntax hep optional(noWs accidental) optional(noWs octave) optional(noWs num optional(dotted)) : music_note
+syntax hep optional(noWs accidental) optional(noWs octave) optional(noWs num optional(noWs dotted)) : music_note
 
 declare_syntax_cat music_seq
 syntax music_note* : music_seq
 
-def elabNote (stx : TSyntax `music_note) : Elab.Term.TermElabM Expr := do
-  let `(music_note| $h:hep$[$acc?:accidental]?$[$oct?:octave]?$[$d?:num$dotted?:dotted]?) := stx
-    | Elab.throwUnsupportedSyntax
-  let h := (h.raw.isLit? hepKind).getD "c"
+def mapNote (stx : TSyntax `music_note) : MacroM Term := do
+  let `(music_note| $h:hep$[$acc?:accidental]?$[$oct?:octave]?$[$d?:num$[$dotted?:dotted]?]?) := stx
+    | Macro.throwError "Invalid note"
+  let h' := (h.raw.isLit? hepKind).getD "c"
   let acc := acc?.bind (·.raw.isLit? accidentalKind) |>.getD ""
   let oct := oct?.bind (·.raw.isLit? octaveKind) |>.getD ""
-  let dots := dotted?.bind (·.raw.isLit? dottedKind) |>.getD "" |>.length
-  let d : MeasuredTime := (mkRat 1 (d?.map (·.getNat) |>.getD 4)) * (2 - mkRat 1 (2 ^ dots))
-  let .some pitch := parsePitch h acc oct
-    | Elab.throwUnsupportedSyntax
-  let note ←
-    Meta.withLocalInstances ((← getLCtx).decls.toList.filterMap (λ x => x)) do
-    Meta.mkAppM ``Note.mk #[toExpr pitch, toExpr d]
-  return note
+  let dots := dotted?.join.bind (·.raw.isLit? dottedKind) |>.getD "" |>.length
+  let duration := (2 - mkRat 1 (2 ^ dots)) /(d?.map (·.getNat) |>.getD 4)
+  let pitch ← parsePitch h' acc oct
+  `(term|Note.mk $pitch (mkRat $(Syntax.mkNumLit <| toString duration.num) $(Syntax.mkNumLit <| toString duration.den) : MeasuredTime))
   where
-  parsePitch (p acc oct : String) : Option Pitch := do
-    let hep ← match p with
-      | "c" => pure Hep.c
-      | "d" => pure Hep.d
-      | "e" => pure Hep.e
-      | "f" => pure Hep.f
-      | "g" => pure Hep.g
-      | "a" => pure Hep.a
-      | "b" => pure Hep.b
-      | _ => .none
+  parsePitch (p acc oct : String) : MacroM Term := do
     let acc : Int := acc.foldl (init := 0)
         λ acc ch => match ch with
           | 's' => acc + 1
@@ -140,18 +130,21 @@ def elabNote (stx : TSyntax `music_note) : Elab.Term.TermElabM Expr := do
           | '\'' => acc + 1
           | ',' => acc - 1
           | _ => acc
-    return Pitch.new hep oct ⟨acc⟩
+    let hep := mkIdent s!"Hep.{p}".toName
+    let acc ← syntaxInt acc
+    let oct ← syntaxInt oct
+    `(term|Pitch.new $hep $oct ⟨$acc⟩)
 
 syntax (name := music) "♩[" music_seq "]" : term
 
-elab "♩[" seq:music_seq "]" : term <= type => do
-  let `(music_seq| $notes:music_note* ) := seq
-    | Elab.throwUnsupportedSyntax
+macro_rules
+  | `(♩[ $seq:music_seq ]) => do
+    let `(music_seq|$notes:music_note*) := seq
+      | Macro.throwError "Must be a sequence of notes"
+    let notes ← notes.mapM mapNote
+    let content :=  Syntax.TSepArray.ofElems notes
+    `(term|[$(content),*])
 
-  let .some noteType := type.app1? `List | Elab.throwUnsupportedSyntax
-
-  let notes ← notes.mapM elabNote
-  Meta.mkListLit noteType notes.toList
 
 example : ♩[ c4 ] == [ (⟨.new .c 0, 0, mkRat 1 4⟩ : @Classical.Note) ] := by decide
 example : ♩[ d4.. ] == [ (⟨.new .d 0, 0, mkRat 7 16⟩ : @Classical.Note) ] := by decide
