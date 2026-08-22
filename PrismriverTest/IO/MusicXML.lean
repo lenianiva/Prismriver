@@ -1,8 +1,8 @@
-import Prismriver.IO.MusicXml
+import Prismriver.IO.MusicXML
 import Prismriver.Composition.Basic
 import PrismriverTest.Common
 
-namespace Prismriver.Test.IO.MusicXml
+namespace Prismriver.Test.IO.MusicXML
 
 open Lean
 
