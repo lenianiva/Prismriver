@@ -35,11 +35,26 @@ def intersect [Inhabited P] (motif : @MotifTime T _) (chords : List P) : List (T
 -- for each component in MotifTime
 -- sample a motif
 -- combine the random motif with the intersection of chord progresions and motif time
+-- take # of notes in chord
+def constantMotif (duration : T) (nNotes : Nat) : @MotifTime T _ :=
+  let components := Std.TreeMap.empty.insert ⟨Time.zero, duration⟩ (List.range nNotes)
+  { components }
 
-def simpleMotif (timeNotePair: T × Note P T) (chords : List P) : List (T × Note P T) :=
-  chords.foldl (init := []) λ acc chord =>
-    acc ++ (
-        timeNotePair.fst,
+-- first note, 2nd note, third
+-- divide duration by 3
+def apregMotif (duration : T) (nNotes : Nat) : @MotifTime T _ :=
+  let (_, components) := (List.range nNotes).foldl (init := (Time.zero, Std.TreeMap.empty)) λ (time, acc) note =>
+    ((time + duration), acc.insert ⟨time + duration, duration⟩ [note])
+  { components }
 
-      )
-  acc
+-- can specify duration patterns, cycled over the notes
+-- 1/4, 1/8, 1/8
+-- 0, 1, 2
+def divideMotif (durations : List T) (nNotes : Nat) : @MotifTime T _ :=
+  let (_, components) :=
+    (List.range nNotes).foldl (init := (Time.zero, Std.TreeMap.empty)) λ (time, acc) note =>
+      let duration := durations[note]!
+      (time + duration, acc.insert ⟨time, duration⟩ [note])
+  { components }
+
+-- 1, 1, 2
