@@ -60,8 +60,8 @@ def scaleMotif [SMul S T] (s : S) (m : @MotifTime T _) : @MotifTime T _ :=
 
 -- input - [4, 8, 8]
 -- 1/4, 1/8, 1/8
-def rhythmMotif (pattern : List Nat) : @MotifTime MeasuredTime _ :=
+def rhythmMotif [SMul Rat T] (pattern : List Nat) : @MotifTime T _ :=
   let (_, components) := pattern.foldl (init := (Time.zero, Std.TreeMap.empty)) λ (time, acc) pattern =>
-    let duration : MeasuredTime := (mkRat 1 pattern)
+    let duration : T := (mkRat 1 pattern) • Time.bar
     ((time + duration), acc.insert ⟨time, duration⟩ [pattern])
   { components }
