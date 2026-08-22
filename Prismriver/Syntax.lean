@@ -12,6 +12,10 @@ private meta def syntaxInt (n : Int) : MacroM (TSyntax `term) := do
   | .ofNat n => `(Int.ofNat $(Syntax.mkNumLit <| toString n))
   | .negSucc n => `(Int.negSucc $(Syntax.mkNumLit <| toString n))
 
+def mkDoSeq (doElems : Array Syntax) : Term :=
+  let elems := doElems.map fun doElem => mkNullNode #[doElem, mkNullNode]
+  ⟨mkNode ``Lean.Parser.Term.doSeqIndent #[mkNullNode <| elems]⟩
+
 declare_syntax_cat music_note
 
 abbrev hepKind : SyntaxNodeKind := `hep
@@ -177,19 +181,22 @@ macro_rules
     let events ← events.mapM λ (z : TSyntax `Prismriver.Syntax.event) => do match z with
       | `(event|$n:music_note) => do
         let n ← mapNote n
-        show MacroM _ from `(term|$id_add_note $n (partId? := .some 0))
+        let t ← `(term|$id_add_note $n (partId? := .some 0))
+        show MacroM _ from `(doElem|$t:term)
       | s => do
+        Macro.throwUnsupported
         let .some ch := s.raw.isCharLit? | Macro.throwUnsupported
         if ch == '|' then
-          show MacroM _ from `(term|$id_move $id_bar)
+          let t ← `(term|$id_move $id_bar)
+          show MacroM _ from `(doElem|$t:term)
         else
           Macro.throwUnsupported
       --| `(event|$z:|) => do
       --  show MacroM _ from `(term|$id_move $id_bar)
       --| _ => Macro.throwUnsupported (α := Term)
-    let content : Term := TSyntax.mk $ Elab.Term.Do.mkDoSeq events
+    let content := TSyntax.mk $ mkDoSeq events
     `(term|
-      $id_compose <| Id.run <| show $id_compositionT Id Unit from
+      $id_compose <| Id.run <| show $id_compositionT Id Unit from do
         $content
       )
 
@@ -198,7 +205,7 @@ example : ♩[ d4.. ] == [ (⟨.new .d 0, 0, mkRat 7 16⟩ : @Classical.Note) ] 
 #eval ♩[ cs5 d4.. e f ]
 #eval ♩[ c'' d e f5 ]
 #eval ♩[ c,,,, d e f5 ]
---#eval ♩[[ c,,,, d e f5 ]]
+#eval ♩[[ c,,,, d e f5 ]]
 
 def play (aldaCode : String) : IO UInt32 := do
   let lockFile := "/tmp/prismriver-alda.lock"
