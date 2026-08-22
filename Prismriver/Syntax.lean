@@ -213,10 +213,9 @@ def play (aldaCode : String) : IO UInt32 := do
   let flag ← hLock.tryLock
   if !flag then
     return 0
-  let ch ← IO.Process.spawn { cmd := "alda", args := #["play", "--wait", "--code", aldaCode] }
-  let ret ← ch.wait
+  let ret ← IO.Process.output { cmd := "alda", args := #["play", "--wait"] } aldaCode
   hLock.unlock
-  return ret
+  return ret.exitCode
 
 elab "#play" e:term : command => do
   let notes ← Elab.Command.liftTermElabM do
