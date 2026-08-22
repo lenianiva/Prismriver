@@ -1,5 +1,6 @@
 import Prismriver.Repr.Classical
 import Prismriver.Repr.Score
+import Prismriver.Composition.Basic
 import Lean.Elab
 
 namespace Prismriver.Syntax
@@ -105,9 +106,6 @@ def dotted := Parser.withAntiquot (Parser.mkAntiquot "dotted" dottedKind) dotted
 -- A music note is a pitch plus an optional duration
 syntax hep optional(noWs accidental) optional(noWs octave) optional(noWs num optional(noWs dotted)) : music_note
 
-declare_syntax_cat music_seq
-syntax music_note* : music_seq
-
 def mapNote (stx : TSyntax `music_note) : MacroM Term := do
   let `(music_note| $h:hep$[$acc?:accidental]?$[$oct?:octave]?$[$d?:num$[$dotted?:dotted]?]?) := stx
     | Macro.throwError "Invalid note"
@@ -120,6 +118,8 @@ def mapNote (stx : TSyntax `music_note) : MacroM Term := do
   `(term|Note.mk $pitch (mkRat $(Syntax.mkNumLit <| toString duration.num) $(Syntax.mkNumLit <| toString duration.den) : MeasuredTime))
   where
   parsePitch (p acc oct : String) : MacroM Term := do
+    unless "abcdefg".contains p do
+      Macro.throwUnsupported
     let acc : Int := acc.foldl (init := 0)
         λ acc ch => match ch with
           | 's' => acc + 1
@@ -135,22 +135,70 @@ def mapNote (stx : TSyntax `music_note) : MacroM Term := do
     let oct ← syntaxInt oct
     `(term|Pitch.new $hep $oct ⟨$acc⟩)
 
-syntax (name := music) "♩[" music_seq "]" : term
+syntax (name := music) "♩[" music_note* "]" : term
+
+abbrev barKind : SyntaxNodeKind := `bar
+def barNoAntiquot : Parser.Parser where
+  fn := Parser.nodeFn barKind <|
+    Parser.rawFn (trailingWs := true) fun ctx s =>
+      let slice := ctx.substring s.pos ctx.endPos
+      let slice' := slice.dropWhile (· == '|')
+      if slice == slice' then
+        s.mkErrorsAt [""] s.pos
+      else
+        s.setPos slice'.startPos
+open PrettyPrinter Formatter in
+@[combinator_formatter barNoAntiquot]
+def barNoAntiquot.formatter : Formatter :=
+  visitAtom barKind
+open PrettyPrinter Parenthesizer in
+@[combinator_parenthesizer barNoAntiquot]
+def barNoAntiquot.parenthesizer : Parenthesizer := visitToken
+def bar := Parser.withAntiquot (Parser.mkAntiquot "bar" barKind) barNoAntiquot
+
+syntax event := music_note <|> "|"
+declare_syntax_cat music_seq
+syntax (event)* : music_seq
+syntax (name := music_score) "♩[[" music_seq "]]" : term
 
 macro_rules
-  | `(♩[ $seq:music_seq ]) => do
-    let `(music_seq|$notes:music_note*) := seq
-      | Macro.throwError "Must be a sequence of notes"
+  | `(♩[ $notes:music_note* ]) => do
     let notes ← notes.mapM mapNote
     let content :=  Syntax.TSepArray.ofElems notes
     `(term|[$(content),*])
-
+  | `(♩[[ $seq:music_seq ]]) => do
+    let id_compose := mkCIdent ``Composition.compose
+    let id_compositionT := mkCIdent ``Classical.CompositionT
+    let id_add_note := mkCIdent ``Composition.addNote
+    let id_move := mkCIdent ``Composition.move
+    let id_bar := mkCIdent ``MeasuredTime.bar
+    let `(music_seq|$events:event*) := seq
+      | Macro.throwError "Must be a sequence of notes"
+    let events ← events.mapM λ (z : TSyntax `Prismriver.Syntax.event) => do match z with
+      | `(event|$n:music_note) => do
+        let n ← mapNote n
+        show MacroM _ from `(term|$id_add_note $n (partId? := .some 0))
+      | s => do
+        let .some ch := s.raw.isCharLit? | Macro.throwUnsupported
+        if ch == '|' then
+          show MacroM _ from `(term|$id_move $id_bar)
+        else
+          Macro.throwUnsupported
+      --| `(event|$z:|) => do
+      --  show MacroM _ from `(term|$id_move $id_bar)
+      --| _ => Macro.throwUnsupported (α := Term)
+    let content : Term := TSyntax.mk $ Elab.Term.Do.mkDoSeq events
+    `(term|
+      $id_compose <| Id.run <| show $id_compositionT Id Unit from
+        $content
+      )
 
 example : ♩[ c4 ] == [ (⟨.new .c 0, 0, mkRat 1 4⟩ : @Classical.Note) ] := by decide
 example : ♩[ d4.. ] == [ (⟨.new .d 0, 0, mkRat 7 16⟩ : @Classical.Note) ] := by decide
-#eval (♩[ cs5 d4.. e f ] : List @Classical.Note)
-#eval (♩[ c'' d e f5 ] : List @Classical.Note)
-#eval (♩[ c,,,, d e f5 ] : List @Classical.Note)
+#eval ♩[ cs5 d4.. e f ]
+#eval ♩[ c'' d e f5 ]
+#eval ♩[ c,,,, d e f5 ]
+--#eval ♩[[ c,,,, d e f5 ]]
 
 def play (aldaCode : String) : IO UInt32 := do
   let lockFile := "/tmp/prismriver-alda.lock"
