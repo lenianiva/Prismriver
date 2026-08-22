@@ -13,6 +13,12 @@ structure MotifTime where
   components : Std.TreeMap (@TimeMeasuredTime T) (List Nat)
   deriving Inhabited
 
+instance [SMul S T] : SMul S (@MotifTime T _) where
+  smul s m :=
+    { components := m.components.foldl (init := .empty) λ acc t notes =>
+        acc.insert ⟨s • t.time, s • t.duration⟩ notes }
+
+
 def intersect [Inhabited P] (motif : @MotifTime T _) (chords : List P) : List (T × Note P T) :=
   motif.components.foldl (init := []) λ acc p v =>
     let newNotes := v.map λ i =>
@@ -47,14 +53,7 @@ def apregMotif (duration : T) (nNotes : Nat) : @MotifTime T _ :=
     ((time + duration), acc.insert ⟨time + duration, duration⟩ [note])
   { components }
 
--- can specify duration patterns, cycled over the notes
--- 1/4, 1/8, 1/8
--- 0, 1, 2
-def divideMotif (durations : List T) (nNotes : Nat) : @MotifTime T _ :=
-  let (_, components) :=
-    (List.range nNotes).foldl (init := (Time.zero, Std.TreeMap.empty)) λ (time, acc) note =>
-      let duration := durations[note]!
-      (time + duration, acc.insert ⟨time, duration⟩ [note])
-  { components }
-
--- 1, 1, 2
+def scaleMotif [SMul S T] (s : S) (m : @MotifTime T _) : @MotifTime T _ :=
+  let components := m.components.foldl (init := .empty) λ acc t notes =>
+      acc.insert ⟨s • t.time, s • t.duration⟩ notes
+  {components}

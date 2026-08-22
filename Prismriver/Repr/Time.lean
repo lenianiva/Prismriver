@@ -90,6 +90,11 @@ instance : Time MeasuredTime where
   zero := ⟨0, 0⟩
   bar := ⟨1, 0⟩
 
+instance : SMul Rat MeasuredTime where
+  smul n t :=
+    let total := n * (t.bars + t.offset)
+    ⟨ total.floor, total - total.floor ⟩
+
 structure DivisionLine where
   onBeat : Bool := false
 
