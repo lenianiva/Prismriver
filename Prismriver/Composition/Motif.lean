@@ -50,10 +50,18 @@ def constantMotif (duration : T) (nNotes : Nat) : @MotifTime T _ :=
 -- divide duration by 3
 def apregMotif (duration : T) (nNotes : Nat) : @MotifTime T _ :=
   let (_, components) := (List.range nNotes).foldl (init := (Time.zero, Std.TreeMap.empty)) λ (time, acc) note =>
-    ((time + duration), acc.insert ⟨time + duration, duration⟩ [note])
+    ((time + duration), acc.insert ⟨time, duration⟩ [note])
   { components }
 
 def scaleMotif [SMul S T] (s : S) (m : @MotifTime T _) : @MotifTime T _ :=
   let components := m.components.foldl (init := .empty) λ acc t notes =>
       acc.insert ⟨s • t.time, s • t.duration⟩ notes
   {components}
+
+-- input - [4, 8, 8]
+-- 1/4, 1/8, 1/8
+def rhythmMotif (pattern : List Nat) : @MotifTime MeasuredTime _ :=
+  let (_, components) := pattern.foldl (init := (Time.zero, Std.TreeMap.empty)) λ (time, acc) pattern =>
+    let duration : MeasuredTime := (mkRat 1 pattern)
+    ((time + duration), acc.insert ⟨time, duration⟩ [pattern])
+  { components }
