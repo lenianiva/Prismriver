@@ -36,7 +36,7 @@ def randPieceM : ReaderT Context (Classical.CompositionT (RandomT IO)) Unit := d
   let duration := (mkRat 1 context.timeSignature.bottom : MeasuredTime)
   let motifs := [← randMotif context duration, ← randMotif context duration, ← randMotif context duration]
   -- generate music
-  addPart 0 { instrument? := .some Instrument.acoustic_grand }
+  addPart 0 { instrument? := .some Instrument.violin }
 --  addEvent $ .control (.fifth (diatonicFifths ⟨.d, .natural⟩ .d))
 
   for chord in chords do
@@ -52,15 +52,12 @@ def randPieceM : ReaderT Context (Classical.CompositionT (RandomT IO)) Unit := d
 --      let step := motif.division.times[i+1]! - motif.division.times[i]!
  --     let interval := motif.intervals[i]!
       -- Create sampling profile for pitch
-      let pitch := p0
       let intersection := intersect motif chords
+      for pair in intersection do
+        for note in chord do
+          addPianoNote ⟨ ⟨ note.name, note.acc ⟩  , pair.snd.duration⟩
 
-      intersection.foldl (init := []) λ acc pair =>
-        addPianoNote ⟨ pair.snd, pair.fst ⟩
-
-    -- sample from chords
     move .bar
-  addPianoNote ⟨basePitch, mkRat 1 1⟩
   where
   addPianoNote (note: Classical.Note) := addNote note (partId? := .some 0)
   createSampleProfileAtChord (ch : Chord) (_beatStrength : Nat)
@@ -70,3 +67,12 @@ def randPiece : IO Classical.Score := do
   let context : Context := {timeSignature := {top := 4, bottom := 4}}
   let result ← (compose $ randPieceM.run context).run' (mkStdGen)
   return result
+
+-- lake env lean --run examples/motif-test.lean | alda import -i musicxml | alda play
+
+def main : IO UInt32 := do
+  let score ← randPiece
+  IO.eprintln s!"{score}"
+  let xml := score.toMusicXML
+  IO.println s!"{xml}"
+  return 0
