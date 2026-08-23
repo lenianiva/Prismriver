@@ -25,6 +25,9 @@ class MonadRandom ( g : outParam Type ) [RandomGen g] (m : Type → Type) [Monad
     return a
   genRange (lo hi : Nat) : m Nat := generate (randNat · lo hi)
   genWeighted (weights : Array Nat) : m Nat := generate (randWeighted · weights)
+  genBool (prob : Rat) : m Bool := do
+    let n ← genRange 1 prob.den
+    return n ≤ prob.num
 
 @[always_inline]
 instance (g m n) [Monad m] [Monad n] [MonadLift m n] [RandomGen g] [MonadRandom g m] : MonadRandom g n where
@@ -33,6 +36,7 @@ instance (g m n) [Monad m] [Monad n] [MonadLift m n] [RandomGen g] [MonadRandom 
 
 def genRange { g } [RandomGen g] { m } [Monad m] [MonadRandom g m] := @MonadRandom.genRange g _ m _ _
 def genWeighted { g } [RandomGen g] { m } [Monad m] [MonadRandom g m] := @MonadRandom.genWeighted g _ m _ _
+def genBool { g } [RandomGen g] { m } [Monad m] [MonadRandom g m] := @MonadRandom.genBool g _ m _ _
 -- FIXME: Do not use `Inhabited`. Use nonempty proof instead
 def genChoice { g α } [Inhabited α] [RandomGen g] { m } [Monad m] [MonadRandom g m] (weights : Array Nat) (objects : Array α) : m α := do
   let i ← genWeighted weights
