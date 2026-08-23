@@ -16,7 +16,6 @@ instance : LT T := ltOfOrd
 instance : LE T := leOfOrd
 instance : Min T := minOfLe
 instance : Max T := maxOfLe
-end
 
 structure TimeSpan [Time T] where
   start : T
@@ -25,8 +24,13 @@ structure TimeSpan [Time T] where
 
 protected def TimeSpan.stop [Time T] (s : @TimeSpan T _) : T := s.start + s.duration
 
-instance [Time T] : Repr (@TimeSpan T _) where
+instance : HAdd (@TimeSpan T _) T (@TimeSpan T _) where
+  hAdd span t := { start := span.start + t, duration := span.duration }
+
+instance : Repr (@TimeSpan T _) where
   reprPrec t _ := f!"{reprPrec t.start 0}+{reprPrec t.duration 0}"
+
+end
 
 instance : Time Int where
   zero := 0
@@ -69,6 +73,13 @@ protected def MeasuredTime.bar : MeasuredTime := ⟨1, 0⟩
 
 instance : Coe Rat MeasuredTime where
   coe offset := ⟨0, offset⟩
+
+/-- Rational time -/
+def rt (n d : Nat) : MeasuredTime := mkRat n d
+
+protected def MeasuredTime.dot (m : MeasuredTime) (n : Nat := 1) : MeasuredTime :=
+  let multiplier := 2 - mkRat 1 (2 ^ n)
+  { bars := m.bars, offset := m.offset * multiplier }
 
 instance : Repr MeasuredTime where
   reprPrec i _ := f!"{i.bars}.{i.offset}"
