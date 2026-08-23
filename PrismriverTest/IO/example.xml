@@ -1,1 +1,71 @@
-<score-partwise version="3.1"><work><work-title>untitled</work-title></work><part-list><score-part id="0"><part-name>Violin</part-name><midi-instrument id="part0-41"><midi-program>41</midi-program></midi-instrument></score-part></part-list><part id="0"><measure number="0"><attributes><divisions>1</divisions></attributes><note><pitch><step>E</step><octave>4</octave></pitch><duration>1</duration><type>quarter</type><voice>1</voice></note><note><pitch><step>C</step><octave>5</octave></pitch><duration>1</duration><type>quarter</type><voice>1</voice></note><note><pitch><step>B</step><octave>4</octave></pitch><duration>1</duration><type>quarter</type><voice>1</voice></note><note><pitch><step>D</step><octave>4</octave></pitch><duration>1</duration><type>quarter</type><voice>1</voice></note></measure><measure number="1"><attributes><divisions>1</divisions></attributes><note><pitch><step>E</step><octave>4</octave></pitch><duration>4</duration><type>quarter</type><voice>1</voice></note></measure></part></score-partwise>
+<?xml version="1.0"?>
+<score-partwise version="3.1">
+	<work>
+		<work-title>untitled</work-title>
+	</work>
+	<part-list>
+		<score-part id="0">
+			<part-name>Violin</part-name>
+			<midi-instrument id="part0-41">
+				<midi-program>41</midi-program>
+			</midi-instrument>
+		</score-part>
+	</part-list>
+	<part id="0">
+		<measure number="0">
+			<attributes>
+				<divisions>1</divisions>
+			</attributes>
+			<note>
+				<pitch>
+					<step>E</step>
+					<octave>4</octave>
+				</pitch>
+				<duration>1</duration>
+				<type>quarter</type>
+				<voice>1</voice>
+			</note>
+			<note>
+				<pitch>
+					<step>C</step>
+					<octave>5</octave>
+				</pitch>
+				<duration>1</duration>
+				<type>quarter</type>
+				<voice>1</voice>
+			</note>
+			<note>
+				<pitch>
+					<step>B</step>
+					<octave>4</octave>
+				</pitch>
+				<duration>1</duration>
+				<type>quarter</type>
+				<voice>1</voice>
+			</note>
+			<note>
+				<pitch>
+					<step>D</step>
+					<octave>4</octave>
+				</pitch>
+				<duration>1</duration>
+				<type>quarter</type>
+				<voice>1</voice>
+			</note>
+		</measure>
+		<measure number="1">
+			<attributes>
+				<divisions>1</divisions>
+			</attributes>
+			<note>
+				<pitch>
+					<step>E</step>
+					<octave>4</octave>
+				</pitch>
+				<duration>4</duration>
+				<type>quarter</type>
+				<voice>1</voice>
+			</note>
+		</measure>
+	</part>
+</score-partwise>
