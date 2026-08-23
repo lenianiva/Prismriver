@@ -3,15 +3,13 @@ import Lean.ToExpr
 
 namespace Prismriver
 
-class Time (T : Type) extends Add T, Sub T, Neg T, SMul Int T, Ord T, Inhabited T where
+class Time (T : Type) extends Add T, Sub T, Neg T, SMul Int T, Ord T, Inhabited T, Repr T where
   zero : T
   /- Maximum time within a bar -/
   bar : T := zero
   default := zero
 
 section
-
-set_option synthInstance.checkSynthOrder false
 
 variable { T } [Time T]
 instance : LT T := ltOfOrd
@@ -27,7 +25,7 @@ structure TimeSpan [Time T] where
 
 protected def TimeSpan.stop [Time T] (s : @TimeSpan T _) : T := s.start + s.duration
 
-instance [Repr T] [Time T] : Repr (@TimeSpan T _) where
+instance [Time T] : Repr (@TimeSpan T _) where
   reprPrec t _ := f!"{reprPrec t.start 0}+{reprPrec t.duration 0}"
 
 instance : Time Int where
