@@ -4,26 +4,21 @@ namespace Prismriver.Composition
 
 variable [Time T]
 
-structure TimeMeasuredTime where
-  time : T
-  duration : T
-  deriving Ord, BEq
-
 structure MotifTime where
-  components : Std.TreeMap (@TimeMeasuredTime T) (List Nat)
+  components : Std.TreeMap (@TimeSpan T _) (List Nat)
   deriving Inhabited
 
+-- Multiply a motif by a scalar
 instance [SMul S T] : SMul S (@MotifTime T _) where
   smul s m :=
     { components := m.components.foldl (init := .empty) λ acc t notes =>
-        acc.insert ⟨s • t.time, s • t.duration⟩ notes }
-
+        acc.insert ⟨s • t.start, s • t.duration⟩ notes }
 
 def intersect [Inhabited P] (motif : @MotifTime T _) (chords : List P) : List (T × Note P T) :=
   motif.components.foldl (init := []) λ acc p v =>
     let newNotes := v.map λ i =>
       (
-        p.time,
+        p.start,
         ({ duration := p.duration, pitch := chords[i]! } : Note P T),
       )
     acc ++ newNotes
@@ -55,7 +50,7 @@ def apregMotif (duration : T) (nNotes : Nat) : @MotifTime T _ :=
 
 def scaleMotif [SMul S T] (s : S) (m : @MotifTime T _) : @MotifTime T _ :=
   let components := m.components.foldl (init := .empty) λ acc t notes =>
-      acc.insert ⟨s • t.time, s • t.duration⟩ notes
+      acc.insert ⟨s • t.start, s • t.duration⟩ notes
   {components}
 
 -- input - [4, 8, 8]

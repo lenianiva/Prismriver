@@ -20,6 +20,16 @@ instance : Min T := minOfLe
 instance : Max T := maxOfLe
 end
 
+structure TimeSpan [Time T] where
+  start : T
+  duration : T
+  deriving Ord, BEq
+
+protected def TimeSpan.stop [Time T] (s : @TimeSpan T _) : T := s.start + s.duration
+
+instance [Repr T] [Time T] : Repr (@TimeSpan T _) where
+  reprPrec t _ := f!"{reprPrec t.start 0}+{reprPrec t.duration 0}"
+
 instance : Time Int where
   zero := 0
 
