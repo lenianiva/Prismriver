@@ -1,8 +1,8 @@
-import Prismriver.IO.MusicXml
+import Prismriver.IO.MusicXML
 import Prismriver.Composition.Basic
 import PrismriverTest.Common
 
-namespace Prismriver.Test.IO.MusicXml
+namespace Prismriver.Test.IO.MusicXML
 
 open Lean
 
@@ -14,8 +14,7 @@ def test_division : TestT IO Unit := do
   let file ← IO.FS.readFile "./PrismriverTest/IO/example.xml"
   let .ok elem := Xml.parse file | panic "failed"
   checkTrue "xml" (elem == xml)
-  IO.println s!"{elem}"
-  IO.println s!"{xml}"
+  --IO.FS.writeFile "/tmp/example.xml" s!"{xml}"
   where
   compositionM : Classical.CompositionT Id Unit := do
     addPart 0 { instrument? := .some Instrument.violin }

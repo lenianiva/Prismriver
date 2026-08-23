@@ -174,8 +174,8 @@ def et12StringHarmonics : List Int := [
 ]
 
 /-- Sine wave generator has no harmonics -/
-instance (n : Nat) : Harmonics Int Int sin where
-  scale := EqualTemp.scale n
+instance : Harmonics Int Int sin where
+  scale := EqualTemp.scale 0
   harmonics := []
 
 open EqualTemp in

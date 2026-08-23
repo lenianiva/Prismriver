@@ -62,6 +62,8 @@ protected def MeasuredTime.bar : MeasuredTime := ⟨1, 0⟩
 instance : Coe Rat MeasuredTime where
   coe offset := ⟨0, offset⟩
 
+instance : Repr MeasuredTime where
+  reprPrec i _ := f!"{i.bars}.{i.offset}"
 instance : ToString MeasuredTime where
   toString i := s!"{i.bars}.{i.offset}"
 

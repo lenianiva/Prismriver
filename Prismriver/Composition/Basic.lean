@@ -61,6 +61,11 @@ def compose { P T } [Time T] { M } [Monad M] (m : CompositionT P T M Unit) : M (
   let ((), { score, .. }) ← m.run {}
   return score
 
+instance [ShiftRight T] : Coe (List (Note P T)) (Score P T) where
+  coe li := compose <| Id.run <| show CompositionT P T Id Unit from do
+    for note in li do
+      addNote note
+
 end Composition
 
 export Composition (CompositionT)
