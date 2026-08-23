@@ -7,7 +7,7 @@ namespace Prismriver.Classical
 @[ext]
 structure Accidental where
   semitones : Int := 0
-  deriving BEq, Inhabited, Ord
+  deriving BEq, Inhabited, Ord, Repr
 
 instance : LT Accidental := ltOfOrd
 instance : LE Accidental := leOfOrd
@@ -143,7 +143,7 @@ instance : ToString Tone where
 structure Pitch where
   name : Int
   acc : Accidental := .natural
-  deriving BEq, Inhabited, Ord
+  deriving BEq, Inhabited, Ord, Repr
 
 instance : LT Pitch := ltOfOrd
 instance : LE Pitch := leOfOrd

@@ -31,7 +31,7 @@ def main (args: List String) := do
   let nameFilter? := args.head?
 
   let suites: List (String × List (String × IO LSpec.TestSeq)) := [
-    ("IO/MusicXml", IO.MusicXml.suite),
+    ("IO/MusicXML", IO.MusicXML.suite),
   ]
   let tests : List (String × IO LSpec.TestSeq) := suites.foldl (init := []) λ acc (name, suite) =>
     acc ++ (addPrefix name suite)
