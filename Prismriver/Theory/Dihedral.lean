@@ -57,8 +57,12 @@ def TransposeAction.toDihedral :
 -- convert triad to list of pitches
 def recoverTriple (t : Triad) : List Pitch :=
   match t.2 with
-  | .major => majorTriad (ZMod12ToPitch t.1)
-  | .minor => minorTriad (ZMod12ToPitch (t.1 + 5))
+  | .major =>
+    let p := ZMod12ToPitch t.1
+    p :: major3.map (· • p)
+  | .minor =>
+    let p := ZMod12ToPitch (t.1 + 5)
+    p :: minor3.map (· • p)
 
 def transposeTriad (n : ZMod 12) (t : Triad) : Triad :=
   (t.1 + n, t.2)

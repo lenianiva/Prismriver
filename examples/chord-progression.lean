@@ -1,5 +1,6 @@
 -- Random chord progression
 import Prismriver.Composition.ChordProgression
+import Prismriver.Composition.Motif
 import Prismriver.IO.MusicXML
 
 open Prismriver Classical Composition

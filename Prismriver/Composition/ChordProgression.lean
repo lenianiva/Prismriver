@@ -21,8 +21,8 @@ def randPitch (scale : Scale Pitch Interval) : m Pitch := do
 /-- Create a random chord -/
 def randChord (scale : Scale Pitch Interval) (pitch : Pitch) : m Chord := do
   let base := match ← genRange 0 1 with
-    | 0 => majorTriad pitch
-    | _ => minorTriad pitch
+    | 0 => pitch :: major3.map (· • pitch)
+    | _ => pitch :: minor3.map (· • pitch)
   let i1 := scale.fundamental
   return match ← genRange 0 2 with
     | 0 => base
