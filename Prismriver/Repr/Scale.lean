@@ -75,11 +75,12 @@ theorem pitchCong_equivalence [scale : Scale P I] (φ : I) : Equivalence (@pitch
     ,
   }
 
-set_option synthInstance.checkSynthOrder false in
 /-- Equivalence classes of pitches -/
-instance pitchSetoid [scale : Scale P I] (φ : I := scale.fundamental) : Setoid P where
-  r := pitchCong φ
-  iseqv := pitchCong_equivalence φ
+@[reducible]
+def pitchSetoid [scale : Scale P I] (φ : I := scale.fundamental) : Setoid P := {
+    r := pitchCong φ
+    iseqv := pitchCong_equivalence φ
+  }
 
 /-- Equivalence of pitch classes -/
 abbrev pitchClass [scale : Scale P I] (φ : I := scale.fundamental)
@@ -120,10 +121,12 @@ instance : Torsor Pitch Interval where
   div_smul_self i p := by
     rw [Int.add_sub_cancel]
 
-instance scale (n : Nat) : Scale Pitch Interval where
-  name := s!"{n}-ET"
-  fundamental := n
-  pitches := List.finRange n |>.map (·.toNat)
+@[reducible]
+def scale (n : Nat) : Scale Pitch Interval := {
+    name := s!"{n}-ET"
+    fundamental := n
+    pitches := List.finRange n |>.map (·.toNat)
+  }
 
 theorem n_et_notes (n : Nat) : (scale n).pitches.length = n := by
   unfold Scale.pitches
