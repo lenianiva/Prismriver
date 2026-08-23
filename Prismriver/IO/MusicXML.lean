@@ -1,9 +1,7 @@
 import Prismriver.Repr.Score
+import Prismriver.IO.Xml
 
-import Lean.Data.Xml
 import Lean.Data.RBMap
-
-open Lean
 
 namespace Prismriver
 

@@ -1,11 +1,6 @@
-import Lean.Data.Xml
 import LSpec
 
 namespace Prismriver.Test
-
-open Lean
-deriving instance BEq for Xml.Attributes
-deriving instance BEq for Xml.Content, Xml.Element
 
 def expectationFailure (desc: String) (error: String): LSpec.TestSeq := LSpec.test desc (LSpec.ExpectationFailure "ok _" error)
 def assertUnreachable (message: String): LSpec.TestSeq := LSpec.check message false

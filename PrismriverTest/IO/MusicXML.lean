@@ -14,6 +14,7 @@ def test_division : TestT IO Unit := do
   let file ← IO.FS.readFile "./PrismriverTest/IO/example.xml"
   let .ok elem := Xml.parse file | panic "failed"
   checkTrue "xml" (elem == xml)
+  IO.FS.writeFile "/tmp/example.xml" s!"{xml}"
   where
   compositionM : Classical.CompositionT Id Unit := do
     addPart 0 { instrument? := .some Instrument.violin }
