@@ -5,7 +5,8 @@ import Prismriver.IO.MusicXML
 open Prismriver Classical Composition
 
 structure Context where
-  scale : Scale Pitch Interval := diatonic ⟨.d, .natural⟩ .d
+  --scale : Scale Pitch Interval := diatonic ⟨.d, .natural⟩ .d
+  scale : Scale Pitch Interval := japanese_in ⟨.d, .natural⟩
   -- on chord notes will tend to fall on strong beats
   -- Baseline sampling weight
   baselineWeight : Nat := 1
@@ -28,13 +29,36 @@ def randDivision : RandomT IO Division := do
   lines := lines ++ [(mkRat 1 1 : MeasuredTime)]
   return Division.fromLines lines
 
+structure Motif where
+  division : Division
+  intervals : List Interval
+  deriving Inhabited
+
+protected def Motif.length (m : Motif) : Nat := m.division.times.length - 1
+
+def randMotif (context : Context) : RandomT IO Motif := do
+  let division ← randDivision
+  let p0 := context.scale.pitches[0]!
+  let chord := minorTriad p0
+  let intervals ← division.times.mapM λ t => do
+    let wBeatStrength := context.beatStrengthAt t.offset
+    let profile : Array (_ × Nat) := createSampleProfileAtChord chord wBeatStrength
+    let pitchIdx ← genWeighted (profile.map (·.2))
+    -- Create sampling profile for pitch
+    let pitch := profile[pitchIdx]!.1
+    return pitch / p0
+  return { division, intervals }
+  where
+  createSampleProfileAtChord (ch : Chord) (_beatStrength : Nat)
+    := ch.toArray.zip #[1, 1, 1]
+
 def randPieceM : ReaderT Context (Classical.CompositionT (RandomT IO)) Unit := do
   let length := 9
   let context ← read
   let basePitch := (4 * context.scale.fundamental) • context.scale.pitches[0]!
   -- generate random chord
   let chords := (← randChordProgression context.scale length) ++ [minorTriad basePitch]
-  let motifs := #[← randDivision, ← randDivision]
+  let motifs := #[← randMotif context, ← randMotif context, ← randMotif context]
 
   -- generate music
   addPart 0 { instrument? := .some Instrument.acoustic_grand }
@@ -42,14 +66,16 @@ def randPieceM : ReaderT Context (Classical.CompositionT (RandomT IO)) Unit := d
 
   for chord in chords do
     IO.eprintln s!"chord: {chord}"
-    let division ← genChoice #[1, 1] motifs
-    division.forSectionsM λ t1 t2 => do
-      let wBeatStrength := context.beatStrengthAt t1.offset
-      let step := t2 - t1
-      let profile : Array (_ × Nat) := createSampleProfileAtChord chord wBeatStrength
-      let pitchIdx ← genWeighted (profile.map (·.2))
+    let motif ← genChoice #[1, 1, 1] motifs
+    let profile : Array (_ × Nat) := createSampleProfileAtChord chord 1
+    let pitchIdx ← genWeighted (profile.map (·.2))
+    -- Create sampling profile for pitch
+    let p0 := profile[pitchIdx]!.1
+    for i in List.range motif.length do
+      let step := motif.division.times[i+1]! - motif.division.times[i]!
+      let interval := motif.intervals[i]!
       -- Create sampling profile for pitch
-      let pitch := profile[pitchIdx]!.1
+      let pitch := interval • p0
       addPianoNote ⟨pitch, step⟩
 
     -- sample from chords
