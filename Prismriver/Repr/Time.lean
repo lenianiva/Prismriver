@@ -23,7 +23,7 @@ end
 structure TimeSpan [Time T] where
   start : T
   duration : T
-  deriving Ord, BEq
+  deriving Ord, BEq, DecidableEq
 
 protected def TimeSpan.stop [Time T] (s : @TimeSpan T _) : T := s.start + s.duration
 
@@ -57,7 +57,7 @@ instance : ToExpr Rat where
 structure MeasuredTime where
   bars : Int := 0
   offset : Rat := 0
-  deriving Ord, BEq
+  deriving Ord, BEq, DecidableEq
 instance : LT MeasuredTime := ltOfOrd
 instance : LE MeasuredTime := leOfOrd
 instance : Min MeasuredTime := minOfLe

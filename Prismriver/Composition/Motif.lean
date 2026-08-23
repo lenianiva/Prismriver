@@ -4,17 +4,17 @@ namespace Prismriver.Composition
 
 variable [Time T]
 
-structure MotifTime where
+structure Motif where
   components : Std.TreeMap (@TimeSpan T _) (List Nat)
-  deriving Inhabited
+  deriving Inhabited, BEq
 
 -- Multiply a motif by a scalar
-instance [SMul S T] : SMul S (@MotifTime T _) where
+instance [SMul S T] : SMul S (@Motif T _) where
   smul s m :=
     { components := m.components.foldl (init := .empty) λ acc t notes =>
         acc.insert ⟨s • t.start, s • t.duration⟩ notes }
 
-def intersect [Inhabited P] (motif : @MotifTime T _) (chords : List P) : List (T × Note P T) :=
+def intersect [Inhabited P] (motif : @Motif T _) (chords : List P) : List (T × Note P T) :=
   motif.components.foldl (init := []) λ acc p v =>
     let newNotes := v.map λ i =>
       (
@@ -33,29 +33,29 @@ def intersect [Inhabited P] (motif : @MotifTime T _) (chords : List P) : List (T
 -- arpeggio - hit notes in a sequence
 -- long long short, long long short
 
--- for each component in MotifTime
+-- for each component in Motif
 -- sample a motif
 -- combine the random motif with the intersection of chord progresions and motif time
 -- take # of notes in chord
-def constantMotif (duration : T) (nNotes : Nat) : @MotifTime T _ :=
+def constantMotif (duration : T) (nNotes : Nat) : @Motif T _ :=
   let components := Std.TreeMap.empty.insert ⟨Time.zero, duration⟩ (List.range nNotes)
   { components }
 
 -- first note, 2nd note, third
 -- divide duration by 3
-def apregMotif (duration : T) (nNotes : Nat) : @MotifTime T _ :=
+def apregMotif (duration : T) (nNotes : Nat) : @Motif T _ :=
   let (_, components) := (List.range nNotes).foldl (init := (Time.zero, Std.TreeMap.empty)) λ (time, acc) note =>
     ((time + duration), acc.insert ⟨time, duration⟩ [note])
   { components }
 
-def scaleMotif [SMul S T] (s : S) (m : @MotifTime T _) : @MotifTime T _ :=
+def scaleMotif [SMul S T] (s : S) (m : @Motif T _) : @Motif T _ :=
   let components := m.components.foldl (init := .empty) λ acc t notes =>
       acc.insert ⟨s • t.start, s • t.duration⟩ notes
   {components}
 
 -- input - [4, 8, 8]
 -- 1/4, 1/8, 1/8
-def rhythmMotif [SMul Rat T] (pattern : List Nat) : @MotifTime T _ :=
+def rhythmMotif [SMul Rat T] (pattern : List Nat) : @Motif T _ :=
   let (_, components) := pattern.foldl (init := (Time.zero, Std.TreeMap.empty)) λ (time, acc) pattern =>
     let duration : T := (mkRat 1 pattern) • Time.bar
     ((time + duration), acc.insert ⟨time, duration⟩ [pattern])
