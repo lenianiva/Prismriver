@@ -139,7 +139,7 @@ def mapNote (stx : TSyntax `musicNote) : MacroM Term := do
     let hep := mkIdent s!"Hep.{p}".toName
     let acc ← syntaxInt acc
     let oct ← syntaxInt oct
-    `(term|Pitch.new $hep $oct ⟨$acc⟩)
+    `(term|Pitch.new $hep ($oct + 4) ⟨$acc⟩)
 
 syntax (name := music) "♩[" musicNote* "]" : term
 
@@ -255,12 +255,13 @@ macro_rules
     let content := TSyntax.mk $ mkDoSeq events
     `(term|$id_compose' do $content)
 
-example : ♩[ c4 ] == [ (⟨.new .c 0, 0, mkRat 1 4⟩ : @Classical.Note) ] := by decide
-example : ♩[ d4.. ] == [ (⟨.new .d 0, 0, mkRat 7 16⟩ : @Classical.Note) ] := by decide
+example : ♩[ c4 ] == [ (⟨.new .c 4, 0, mkRat 1 4⟩ : @Classical.Note) ] := by decide
+example : ♩[ d4.. ] == [ (⟨.new .d 4, 0, mkRat 7 16⟩ : @Classical.Note) ] := by decide
 #eval ♩[ cs5 d4.. e f ]
 #eval ♩[ c'' d e f5 ]
 #eval ♩[ c,,,, d e f5 ]
 #eval ♩[[ c,, d e r4 f2 ]]
 #eval ♩[[ c2 | r4 ]]
+#eval ♩[[ e''4 c' b d,8 e | e''2.. r8  ]]
 set_option pp.rawOnError true in
 #eval ♩[[ <c4 a> ]]

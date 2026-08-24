@@ -60,8 +60,9 @@ end Monad
 /-- Simple monad for algorithmic composition -/
 abbrev CompositionT (P T) [Time T] := StateT (State P T)
 
-def compose { P T } [Time T] { M } [Monad M] (m : CompositionT P T M Unit) : M (Score P T) := do
-  let ((), { score, .. }) ← m.run {}
+def compose { P T } [Time T] { M } [Monad M] (m : CompositionT P T M Unit) (src : Score P T := {})
+  : M (Score P T) := do
+  let ((), { score, .. }) ← m.run { score := src }
   return score
 
 /-- Side-effect free compose -/

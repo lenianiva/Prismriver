@@ -13,6 +13,7 @@ def motif0 := Motif.arpeggio (rt 1 2) [true, false]
 /-- Baseline motif -/
 def motif1 := Motif.arpeggio (rt 1 4) [true, false, true, false]
 def motif2 := 2 • (Motif.constant (rt 1 4 |>.dot) false) ++ (Motif.constant (rt 1 4 |>.dot) true)
+def motif3 := Motif.arpeggio (rt 1 8) [1, 2, 1, 3, 1, 2, 1, 3]
 
 def motifSmall1 := Motif.multi [(rt 1 8, Interval.unison), (rt 1 16, -.mi2), (rt 1 16, .unison)]
 
@@ -44,12 +45,13 @@ def randPieceM : ReaderT Context (Classical.CompositionT (RandomT IO)) Unit := d
     let notes := motif.intersect λ p => [p]
     for (_, note) in notes do
       addPianoNote note
+      --move t
 
     -- sample from chords
     move .bar
   addPianoNote ⟨tonic, mkRat 1 1⟩
   where
-  addPianoNote (note: Classical.Note) := addNote note (partId? := .some 0)
+  addPianoNote (note: Classical.Note) := addNote note (partId? := .some 0) --(still := true)
   createSampleProfileAtChord (ch : Chord) (_beatStrength : Nat)
     := ch.toArray.zip #[1, 1, 1]
 
@@ -60,7 +62,7 @@ def randPiece : IO Classical.Score := do
 /--
 Usage:
 
-`lake env lean --run examples/motif.lean | alda import -i musicxml | alda play`
+`lake env lean --run examples/motif.lean | alda import -i musicxml | alda play --wait`
 -/
 def main : IO UInt32 := do
   let score ← randPiece

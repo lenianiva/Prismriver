@@ -14,7 +14,7 @@ def necrofantasia : Classical.Score :=
   ]]
   let main := main.merge chords
   let mainline := ♩[[
-    e''4 c' b d,8 e | e''2.. r8  |
+    e''4 c'4 b4 d,8 e8 | e''2.. r8  |
     e4      d'   c b8 c8 | c'''4  b a g8 a8 |
     a4      g    e g8 a8 | a''4   g e g8   e  |
     e4      d  e g8  e | e''2..          r8  |
