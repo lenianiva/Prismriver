@@ -2,9 +2,10 @@
 import Prismriver.Repr
 import Prismriver.Composition.Basic
 import Prismriver.IO
-namespace Prismriver.Composition
 
-open Prismriver Prismriver.Classical Prismriver.Composition
+namespace Prismriver.Composition.Counterpoint
+
+open Prismriver.Classical
 
 def formCounterpointAux : List Pitch → Interval → List Pitch → List Pitch
   | [], _, total => total
@@ -131,4 +132,21 @@ example : allowedIntervalMovement Interval.mi2 := by
   unfold isStep
   simp
 
-end Prismriver.Composition
+-- Monadic composition of counterpoint
+
+structure Context where
+
+structure State where
+  /-- Last generated -/
+  lastPitch : Pitch
+  lastInterval : Interval
+
+abbrev CounterpointT M := ReaderT Context (StateT State M)
+
+/-- Generate the next note in the counterpoint series -/
+def next { M } [Monad M] (y : Pitch) : CounterpointT M Pitch := do
+  let { lastPitch := x, lastInterval := i } ← get
+  let x' := i • x
+  let i' := (2 : Int) * (x / y) + i
+  set ({ lastPitch := x', lastInterval := i' } : State)
+  return x'
