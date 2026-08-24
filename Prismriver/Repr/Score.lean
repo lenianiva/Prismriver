@@ -72,6 +72,12 @@ protected def addEvent (score : Score P T) (time : T) (event : Event P T)
   let events'' := events'.modify time λ li => li ++ [event]
   { score with events := events'' }
 
+protected def fromParts (parts : List (PartId × Part)) : Score P T :=
+  {
+    parts := parts.foldl (init := .empty) λ acc (k, v) => acc.insert k v,
+    events := .empty
+  }
+
 structure Context where
   time : T
   -- List of all active events at time `T`
@@ -112,6 +118,17 @@ protected def forM [Monad M] [BEq T] (score : Score P T) (m : @Context P T _ →
   (tail : Bool := true)
   : M Unit := do
   score.foldM (init := ()) (tail := tail) λ () => m
+
+protected def remapParts (score : Score P T) (f : Option PartId → Option PartId) : Score P T :=
+  {
+    parts := score.parts.foldl (init := .empty) λ acc k v =>
+      match f (.some k) with
+      | .some k' => acc.insert k' v
+      | .none => acc
+    events := score.events.map λ _ es => es.map λ
+      | .note n p => .note n (f p)
+      | e => e
+  }
 
 /-- Combine two scores-/
 protected def merge (score1 score2 : Score P T) : Score P T :=

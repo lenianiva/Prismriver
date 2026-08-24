@@ -61,6 +61,9 @@ def compose { P T } [Time T] { M } [Monad M] (m : CompositionT P T M Unit) : M (
   let ((), { score, .. }) ← m.run {}
   return score
 
+/-- Side-effect free compose -/
+def compose' { P T } [Time T] (m : CompositionT P T Id Unit) : Score P T := compose (Id.run m)
+
 instance [ShiftRight T] : Coe (List (Note P T)) (Score P T) where
   coe li := compose <| Id.run <| show CompositionT P T Id Unit from do
     for note in li do

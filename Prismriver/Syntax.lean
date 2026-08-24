@@ -141,25 +141,6 @@ def mapNote (stx : TSyntax `music_note) : MacroM Term := do
 
 syntax (name := music) "♩[" music_note* "]" : term
 
-abbrev barKind : SyntaxNodeKind := `bar
-def barNoAntiquot : Parser.Parser where
-  fn := Parser.nodeFn barKind <|
-    Parser.rawFn (trailingWs := true) fun ctx s =>
-      let slice := ctx.substring s.pos ctx.endPos
-      let slice' := slice.dropWhile (· == '|')
-      if slice == slice' then
-        s.mkErrorsAt [""] s.pos
-      else
-        s.setPos slice'.startPos
-open PrettyPrinter Formatter in
-@[combinator_formatter barNoAntiquot]
-def barNoAntiquot.formatter : Formatter :=
-  visitAtom barKind
-open PrettyPrinter Parenthesizer in
-@[combinator_parenthesizer barNoAntiquot]
-def barNoAntiquot.parenthesizer : Parenthesizer := visitToken
-def bar := Parser.withAntiquot (Parser.mkAntiquot "bar" barKind) barNoAntiquot
-
 syntax event := music_note <|> "|"
 declare_syntax_cat music_seq
 syntax (event)* : music_seq
@@ -171,8 +152,7 @@ macro_rules
     let content :=  Syntax.TSepArray.ofElems notes
     `(term|[$(content),*])
   | `(♩[[ $seq:music_seq ]]) => do
-    let id_compose := mkCIdent ``Composition.compose
-    let id_compositionT := mkCIdent ``Classical.CompositionT
+    let id_compose' := mkCIdent ``Composition.compose'
     let id_add_note := mkCIdent ``Composition.addNote
     let id_move := mkCIdent ``Composition.move
     let id_bar := mkCIdent ``MeasuredTime.bar
@@ -181,7 +161,7 @@ macro_rules
     let events ← events.mapM λ (z : TSyntax `Prismriver.Syntax.event) => do match z with
       | `(event|$n:music_note) => do
         let n ← mapNote n
-        let t ← `(term|$id_add_note $n (partId? := .some 0))
+        let t ← `(term|$id_add_note $n (partId? := .none))
         show MacroM _ from `(doElem|$t:term)
       | s => do
         Macro.throwUnsupported
@@ -195,10 +175,7 @@ macro_rules
       --  show MacroM _ from `(term|$id_move $id_bar)
       --| _ => Macro.throwUnsupported (α := Term)
     let content := TSyntax.mk $ mkDoSeq events
-    `(term|
-      $id_compose <| Id.run <| show $id_compositionT Id Unit from do
-        $content
-      )
+    `(term|$id_compose' do $content)
 
 example : ♩[ c4 ] == [ (⟨.new .c 0, 0, mkRat 1 4⟩ : @Classical.Note) ] := by decide
 example : ♩[ d4.. ] == [ (⟨.new .d 0, 0, mkRat 7 16⟩ : @Classical.Note) ] := by decide
