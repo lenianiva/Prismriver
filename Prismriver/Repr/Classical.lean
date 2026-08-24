@@ -444,9 +444,12 @@ def ma2 : Interval := ⟨1, 2⟩
 def mi3 : Interval := ⟨2, 3⟩
 def ma3 : Interval := ⟨2, 4⟩
 def p4 : Interval := { name := 3, semitones := 5 }
+def aug4 : Interval := ⟨3, 6⟩
+def dim5 : Interval := ⟨4, 6⟩
 def p5 : Interval := { name := 4, semitones := 7 }
 def mi6 : Interval := ⟨5, 8⟩
 def ma6 : Interval := ⟨5, 9⟩
+def dim7 : Interval := ⟨6, 9⟩
 def mi7 : Interval := ⟨6, 10⟩
 def ma7 : Interval := ⟨6, 11⟩
 
@@ -504,14 +507,20 @@ instance : HSMul Interval Pitch Pitch where
 --    { name, acc := { semitones := i.semitones - Δsemitones} }
    { name, acc := { semitones := (p.acc.semitones + i.semitones) - Δsemitones} }
 
-open Interval in
-def majorTriad (p : Pitch) : List Pitch := [
-    p, ma3 • p, p5 • p
-  ]
-open Interval in
-def minorTriad (p : Pitch) : List Pitch := [
-    p, mi3 • p, p5 • p
-  ]
+open Interval
+/-- Creates a major chord from some pitch -/
+def major3 := [ ma3, p5 ]
+/-- Creates a minor chord from some other pitch -/
+def minor3 := [ mi3, p5 ]
+def diminished3 := [ mi3, dim5 ]
+/-- Suspeneded chord 2 -/
+def sus23 := [ ma2, p5 ]
+/-- Suspeneded chord 4 -/
+def sus43 := [ p4, p5 ]
+def major7 := [ ma3, p5, ma7 ]
+def minor7 := [ mi3, p5, mi7 ]
+def diminished7 := [ mi3, dim5, dim7 ]
+
 example : Interval.octave • (Pitch.new .c 4) = (Pitch.new .c 5) := rfl
 example : Interval.p5 • (Pitch.new .c 4) = (Pitch.new .g 4) := rfl
 example : Interval.p5 • (Pitch.new .b 5) = (Pitch.new .f 6 .sharp) := rfl
