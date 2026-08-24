@@ -4,8 +4,9 @@ import Prismriver.IO.MusicXML
 
 open Prismriver Prismriver.Classical Prismriver.Composition
 
+def accompanimentId := 1
 def addPianoNote (note: Classical.Note)
-  : Classical.CompositionT Id Unit := addNote note (partId? := .some 0) --(still := true)
+  : Classical.CompositionT Id Unit := addNote note (partId? := .some accompanimentId) --(still := true)
 
 /-- Ending motif -/
 def motif0 := Motif.arpeggio (rt 1 2) [true, false]
@@ -15,12 +16,11 @@ def motif2 := Motif.arpeggio (rt 1 8) [0, 1, 0, 2, 0, 1, 0, 2]
 
 def generateAccompaniment : Classical.CompositionT Id Unit := do
   --let mut bar := 0
-  let motif := motif1
-  addPart 1 { instrument? := .some Instrument.acoustic_grand }
-  return ()
+  let motif := motif2
+  addPart accompanimentId { instrument? := .some Instrument.acoustic_grand }
   repeat do
     let chord := (← getNewEvents).filterMap λ
-      | .note { pitch := p, .. } .none => .some p
+      | .note { pitch := p, .. } .none => .some <| (-2 * Interval.octave) • p
       | _ => .none
     let _base :: _rest := chord | break
     let notes := motif.intersect λ i => [chord[i]!]
