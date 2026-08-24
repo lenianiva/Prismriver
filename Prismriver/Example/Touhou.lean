@@ -9,6 +9,10 @@ def necrofantasia : Classical.Score :=
   let main := Score.fromParts [
     (0, { instrument? := .some Instrument.violin }),
   ]
+  let chords := ♩[[
+    <e'1 g'1 d'1> | <e'1 g'1 d'1> |
+  ]]
+  let main := main.merge chords
   let mainline := ♩[[
     e''4 c' b d,8 e | e''2.. r8  |
     e4      d'   c b8 c8 | c'''4  b a g8 a8 |
@@ -16,8 +20,8 @@ def necrofantasia : Classical.Score :=
     e4      d  e g8  e | e''2..          r8  |
     e''4 c' b d,8 e | e''2..          r8  |
     e''4   d'   c b8 c8 | c'''4  b a g8 a  |
-    a''4   g    e g8  a | a''4   g e g8 a' |
-    a'1                    | a'2.. r8 |
+    a''4   g    e g8  a | a''4   g e g8 <cs, a'> |
+    <cs,1 a'1>                    | <cs2..  a'2..> r8 |
 
     c''4 e  d  b8 c8 | c2..      r8   |
     c4    d  e  d8 e8 | e4 d c b8 c8  |

@@ -7,16 +7,20 @@ namespace Prismriver.Syntax
 
 open Lean Prismriver.Classical
 
-private meta def syntaxInt (n : Int) : MacroM (TSyntax `term) := do
+private meta def syntaxInt (n : Int) : MacroM Term := do
   match n with
   | .ofNat n => `(Int.ofNat $(Syntax.mkNumLit <| toString n))
   | .negSucc n => `(Int.negSucc $(Syntax.mkNumLit <| toString n))
+
+private meta def mkBoolLit : Bool → MacroM Term
+  | true => `(term|true)
+  | false => `(term|false)
 
 def mkDoSeq (doElems : Array Syntax) : Term :=
   let elems := doElems.map fun doElem => mkNullNode #[doElem, mkNullNode]
   ⟨mkNode ``Lean.Parser.Term.doSeqIndent #[mkNullNode <| elems]⟩
 
-declare_syntax_cat music_note
+declare_syntax_cat musicNote
 
 abbrev hepKind : SyntaxNodeKind := `hep
 
@@ -106,10 +110,10 @@ def dottedNoAntiquot.parenthesizer : Parenthesizer := visitToken
 def dotted := Parser.withAntiquot (Parser.mkAntiquot "dotted" dottedKind) dottedNoAntiquot
 
 -- A music note is a pitch plus an optional duration
-syntax hep optional(noWs accidental) optional(noWs octave) optional(noWs num optional(noWs dotted)) : music_note
+syntax hep optional(noWs accidental) optional(noWs octave) optional(noWs num optional(noWs dotted)) : musicNote
 
-def mapNote (stx : TSyntax `music_note) : MacroM Term := do
-  let `(music_note| $h:hep$[$acc?:accidental]?$[$oct?:octave]?$[$d?:num$[$dotted?:dotted]?]?) := stx
+def mapNote (stx : TSyntax `musicNote) : MacroM Term := do
+  let `(musicNote| $h:hep$[$acc?:accidental]?$[$oct?:octave]?$[$d?:num$[$dotted?:dotted]?]?) := stx
     | Macro.throwError s!"Invalid note: {stx}"
   let h' := (h.raw.isLit? hepKind).getD "c"
   let acc := acc?.bind (·.raw.isLit? accidentalKind) |>.getD ""
@@ -137,7 +141,7 @@ def mapNote (stx : TSyntax `music_note) : MacroM Term := do
     let oct ← syntaxInt oct
     `(term|Pitch.new $hep $oct ⟨$acc⟩)
 
-syntax (name := music) "♩[" music_note* "]" : term
+syntax (name := music) "♩[" musicNote* "]" : term
 
 /-- Any kind of rest mark -/
 abbrev restMarkKind : SyntaxNodeKind := `restMark
@@ -199,41 +203,55 @@ def barMarkNoAntiquot.parenthesizer : Parenthesizer := visitToken
 def barMark := Parser.withAntiquot (Parser.mkAntiquot "barMark" barMarkKind) barMarkNoAntiquot
 
 syntax bar := barMark
---syntax event := music_note <|> ("r" optional(noWs num optional(noWs dotted))) <|> "|"
-syntax event := music_note <|> rest <|> bar
-declare_syntax_cat music_seq
-syntax (event)* : music_seq
-syntax (name := music_score) "♩[[" music_seq "]]" : term
+syntax noteGroup := "<" musicNote+ ">"
+
+def mapNoteGroup (stx : TSyntax `Prismriver.Syntax.noteGroup) : MacroM (Array Term) := do
+  let `(noteGroup|< $notes* >) := stx
+    | Macro.throwError "Invalid note group"
+  let notes ← notes.mapM mapNote
+  return notes
+
+--syntax event := musicNote <|> ("r" optional(noWs num optional(noWs dotted))) <|> "|"
+syntax event := musicNote <|> noteGroup <|> rest <|> bar
+declare_syntax_cat musicSeq
+syntax (event)* : musicSeq
+syntax (name := music_score) "♩[[" musicSeq "]]" : term
 
 macro_rules
-  | `(♩[ $notes:music_note* ]) => do
+  | `(♩[ $notes:musicNote* ]) => do
     let notes ← notes.mapM mapNote
     let content :=  Syntax.TSepArray.ofElems notes
     `(term|[$(content),*])
-  | `(♩[[ $seq:music_seq ]]) => do
+  | `(♩[[ $seq:musicSeq ]]) => do
     let id_compose' := mkCIdent ``Composition.compose'
     let id_add_note := mkCIdent ``Composition.addNote
     let id_move := mkCIdent ``Composition.move
     let id_bar := mkCIdent ``MeasuredTime.bar
     let id_rt := mkCIdent ``rt
-    let `(music_seq|$events:event*) := seq
+    let `(musicSeq|$events:event*) := seq
       | Macro.throwError "Must be a sequence of notes"
-    let events ← events.mapM λ (z : TSyntax `Prismriver.Syntax.event) => do match z with
+    let events ← events.flatMapM λ (z : TSyntax `Prismriver.Syntax.event) => do match z with
       | `(event|$r:rest) => do
         let duration ← mapRest r
         let t ← `(term|$id_move <| $id_rt $(Syntax.mkNumLit <| toString duration.num) $(Syntax.mkNumLit <| toString duration.den))
-        show MacroM _ from `(doElem|$t:term)
+        return #[← show MacroM _ from `(doElem|$t:term)]
       | `(event|$_b:barMark) => do
         let t ← `(term|$id_move $id_bar)
-        show MacroM _ from `(doElem|$t:term)
-      | `(event|$n:music_note) => do
+        return #[← show MacroM _ from `(doElem|$t:term)]
+      | `(event|$g:noteGroup) => do
+        let ns ← mapNoteGroup g
+        ns.zipIdx.mapM λ (n, i) => do
+          let still := i != (ns.size - 1)
+          let elem ← `(term|$id_add_note $n (partId? := .none) (still := $(← mkBoolLit still)))
+          show MacroM _ from `(doElem|$elem:term)
+      | `(event|$n:musicNote) => do
         let n ← mapNote n
         let t ← `(term|$id_add_note $n (partId? := .none))
-        show MacroM _ from `(doElem|$t:term)
+        return #[← show MacroM _ from `(doElem|$t:term)]
       --| `(event|$z:|) => do
       --  show MacroM _ from `(term|$id_move $id_bar)
       | _ => do
-        Macro.throwError (α := TSyntax `doElem) "unknown syntax"
+        Macro.throwError (α := Array (TSyntax `doElem)) "unknown syntax"
     let content := TSyntax.mk $ mkDoSeq events
     `(term|$id_compose' do $content)
 
@@ -243,4 +261,6 @@ example : ♩[ d4.. ] == [ (⟨.new .d 0, 0, mkRat 7 16⟩ : @Classical.Note) ] 
 #eval ♩[ c'' d e f5 ]
 #eval ♩[ c,,,, d e f5 ]
 #eval ♩[[ c,, d e r4 f2 ]]
-#eval ♩[[ c4 | r4 ]]
+#eval ♩[[ c2 | r4 ]]
+set_option pp.rawOnError true in
+#eval ♩[[ <c4 a> ]]
