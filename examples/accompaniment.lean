@@ -13,6 +13,7 @@ def motif0 := Motif.arpeggio (rt 1 2) [true, false]
 /-- Baseline motif -/
 def motif1 := Motif.arpeggio (rt 1 4) [0, 0, 1, 2]
 def motif2 := Motif.arpeggio (rt 1 8) [0, 1, 0, 2, 0, 1, 0, 2]
+def motif3 := (Motif.arpeggio (rt 3 8) [0, 0]) ++ (Motif.arpeggio (rt 1 8) [1])
 
 def generateAccompaniment : Classical.CompositionT Id Unit := do
   --let mut bar := 0
