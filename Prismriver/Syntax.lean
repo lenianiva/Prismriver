@@ -110,7 +110,7 @@ syntax hep optional(noWs accidental) optional(noWs octave) optional(noWs num opt
 
 def mapNote (stx : TSyntax `music_note) : MacroM Term := do
   let `(music_note| $h:hep$[$acc?:accidental]?$[$oct?:octave]?$[$d?:num$[$dotted?:dotted]?]?) := stx
-    | Macro.throwError "Invalid note"
+    | Macro.throwError s!"Invalid note: {stx}"
   let h' := (h.raw.isLit? hepKind).getD "c"
   let acc := acc?.bind (·.raw.isLit? accidentalKind) |>.getD ""
   let oct := oct?.bind (·.raw.isLit? octaveKind) |>.getD ""
@@ -167,14 +167,40 @@ def restMark := Parser.withAntiquot (Parser.mkAntiquot "restMark" restMarkKind) 
 syntax rest := restMark optional(noWs num optional(noWs dotted))
 
 def mapRest (stx : TSyntax `Prismriver.Syntax.rest) : MacroM Rat := do
-  let `(rest|$m$[$d?:num$[$dotted?:dotted]?]?) := stx
+  let `(rest|$_m$[$d?:num$[$dotted?:dotted]?]?) := stx
     | Macro.throwError "Invalid note"
   let dots := dotted?.join.bind (·.raw.isLit? dottedKind) |>.getD "" |>.length
   let duration := (2 - mkRat 1 (2 ^ dots))
   return duration
 
+/-- Any kind of rest mark -/
+abbrev barMarkKind : SyntaxNodeKind := `barMark
+
+def barMarkNoAntiquot : Parser.Parser where
+  fn := Parser.nodeFn barMarkKind <|
+    Parser.rawFn (trailingWs := true) fun ctx s =>
+      let slice := ctx.substring s.pos ctx.endPos
+      let slice' := slice.dropWhile ("|".contains ·)
+      if slice == slice' then
+        s.mkErrorsAt [""] s.pos
+      else
+        s.setPos slice'.startPos
+
+open PrettyPrinter Formatter in
+@[combinator_formatter barMarkNoAntiquot]
+def barMarkNoAntiquot.formatter : Formatter :=
+  visitAtom barMarkKind
+
+open PrettyPrinter Parenthesizer in
+@[combinator_parenthesizer barMarkNoAntiquot]
+def barMarkNoAntiquot.parenthesizer : Parenthesizer := visitToken
+
+/-- Parser which eats a barMark -/
+def barMark := Parser.withAntiquot (Parser.mkAntiquot "barMark" barMarkKind) barMarkNoAntiquot
+
+syntax bar := barMark
 --syntax event := music_note <|> ("r" optional(noWs num optional(noWs dotted))) <|> "|"
-syntax event := music_note <|> rest <|> "|"
+syntax event := music_note <|> rest <|> bar
 declare_syntax_cat music_seq
 syntax (event)* : music_seq
 syntax (name := music_score) "♩[[" music_seq "]]" : term
@@ -195,25 +221,19 @@ macro_rules
     let events ← events.mapM λ (z : TSyntax `Prismriver.Syntax.event) => do match z with
       | `(event|$r:rest) => do
         let duration ← mapRest r
-        let n ← syntaxInt duration.num
-        let d ← syntaxInt duration.den
         let t ← `(term|$id_move <| $id_rt $(Syntax.mkNumLit <| toString duration.num) $(Syntax.mkNumLit <| toString duration.den))
+        show MacroM _ from `(doElem|$t:term)
+      | `(event|$_b:barMark) => do
+        let t ← `(term|$id_move $id_bar)
         show MacroM _ from `(doElem|$t:term)
       | `(event|$n:music_note) => do
         let n ← mapNote n
         let t ← `(term|$id_add_note $n (partId? := .none))
         show MacroM _ from `(doElem|$t:term)
-      | s => do
-        Macro.throwUnsupported
-        let .some ch := s.raw.isCharLit? | Macro.throwUnsupported
-        if ch == '|' then
-          let t ← `(term|$id_move $id_bar)
-          show MacroM _ from `(doElem|$t:term)
-        else
-          Macro.throwUnsupported
       --| `(event|$z:|) => do
       --  show MacroM _ from `(term|$id_move $id_bar)
-      --| _ => Macro.throwUnsupported (α := Term)
+      | _ => do
+        Macro.throwError (α := TSyntax `doElem) "unknown syntax"
     let content := TSyntax.mk $ mkDoSeq events
     `(term|$id_compose' do $content)
 
@@ -222,5 +242,5 @@ example : ♩[ d4.. ] == [ (⟨.new .d 0, 0, mkRat 7 16⟩ : @Classical.Note) ] 
 #eval ♩[ cs5 d4.. e f ]
 #eval ♩[ c'' d e f5 ]
 #eval ♩[ c,,,, d e f5 ]
-#eval ♩[[ c,, d e f2 ]]
-#eval ♩[[ c4 r4 ]]
+#eval ♩[[ c,, d e r4 f2 ]]
+#eval ♩[[ c4 | r4 ]]
