@@ -45,6 +45,9 @@ def move [ShiftRight T] (d : T) : M Unit := do
 def addEvent (event : Event P T) : M Unit := do
   modify λ state => { state with score := state.score.addEvent state.time event }
 
+def getNewEvents : M (List (Event P T)) := do
+  return (← get).score.newEventsAt (← currentTime)
+
 /-- Insert a new note at the current time -/
 def addNote [ShiftRight T] (note : Note P T) (partId? : Option PartId := .none) (still : Bool := false)
   : M Unit := do

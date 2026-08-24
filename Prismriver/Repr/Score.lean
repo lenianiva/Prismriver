@@ -72,6 +72,9 @@ protected def addEvent (score : Score P T) (time : T) (event : Event P T)
   let events'' := events'.modify time λ li => li ++ [event]
   { score with events := events'' }
 
+protected def newEventsAt (score : Score P T) (time : T)
+  : List (Event P T) := score.events.getD time []
+
 protected def fromParts (parts : List (PartId × Part)) : Score P T :=
   {
     parts := parts.foldl (init := .empty) λ acc (k, v) => acc.insert k v,
