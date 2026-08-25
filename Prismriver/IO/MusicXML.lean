@@ -66,7 +66,6 @@ protected def Note.toMusicXML (note : Classical.Note) (duration : Nat) : Xml.Ele
   let content := #[
     .Element (Pitch.toMusicXML note.pitch),
     .Element (single "duration" $ toString duration),
-    .Element (single "type" "quarter"),
     .Element (single "voice" $ toString 1),
   ]
   .Element
@@ -91,7 +90,6 @@ private def rest (duration : Nat) : Xml.Element :=
   let content := #[
     .Element (.Element (name := "rest") .empty #[]),
     .Element (single "duration" $ toString duration),
-    .Element (single "type" "quarter"),
     .Element (single "voice" $ toString 1),
   ]
   .Element
