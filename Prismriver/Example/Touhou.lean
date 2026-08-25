@@ -13,12 +13,12 @@ def necrofantasia : Classical.Score :=
     <e'1 g'1 b'1> | <e'1 g'1 b'1> |
     <e'1 a'1 c''1> | <g'1 b'1 d''1> |
     <e'1 g'1 b'1> | <c'1 e'1 g'1> |
-    <a1 cs'1 e'1> | <e'1 g'1 b'1> |
+    <e'1 g'1 b'1> | <e'1 g'1 b'1> |
 
     <e'1 g'1 b'1> | <e'1 g'1 b'1> |
     <e'1 a'1 c''1> | <g'1 b'1 d''1> |
     <e'1 g'1 b'1> | <c'1 e'1 g'1> |
-    <a1 cs'1 e'1> | <e'1 g'1 b'1> |
+    <a1 cs'1 e'1> | <a1 cs'1 e'1> |
 
     -- fine
 
