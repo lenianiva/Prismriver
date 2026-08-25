@@ -66,7 +66,6 @@ protected def Note.toMusicXML (note : Classical.Note) (duration : Nat) : Xml.Ele
   let content := #[
     .Element (Pitch.toMusicXML note.pitch),
     .Element (single "duration" $ toString duration),
-    .Element (single "type" "quarter"),
     .Element (single "voice" $ toString 1),
   ]
   .Element
@@ -91,7 +90,6 @@ private def rest (duration : Nat) : Xml.Element :=
   let content := #[
     .Element (.Element (name := "rest") .empty #[]),
     .Element (single "duration" $ toString duration),
-    .Element (single "type" "quarter"),
     .Element (single "voice" $ toString 1),
   ]
   .Element
@@ -147,7 +145,7 @@ protected def Measure.toMusicXML (measure : Measure) (number : Nat) : Xml.Elemen
     let notes := match event.toMusicXML d with
       | .some elem => [.Element elem]
       | .none => []
-    -- Move the time
+    -- Move the time by necessary duration
     modify (· + d)
     pure (elements ++ pad ++ notes)
 
@@ -172,9 +170,12 @@ private def OutputState.insertEvent (σ : OutputState)
     | .some partId => σ.parts.modify partId λ part => part.alter σ.measureN λ
       | .none => .some { events := es }
       | .some measure => .some { events := measure.events ++ es }
-    | .none => σ.parts.map λ _partId part => part.alter σ.measureN λ
-      | .none => .some { events := es }
-      | .some measure => .some { events := measure.events ++ es }
+    | .none => if event matches .note .. then
+        σ.parts
+      else
+        σ.parts.map λ _partId part => part.alter σ.measureN λ
+        | .none => .some { events := es }
+        | .some measure => .some { events := measure.events ++ es }
   {
     σ with
     parts

@@ -45,6 +45,9 @@ def move [ShiftRight T] (d : T) : M Unit := do
 def addEvent (event : Event P T) : M Unit := do
   modify λ state => { state with score := state.score.addEvent state.time event }
 
+def getNewEvents : M (List (Event P T)) := do
+  return (← get).score.newEventsAt (← currentTime)
+
 /-- Insert a new note at the current time -/
 def addNote [ShiftRight T] (note : Note P T) (partId? : Option PartId := .none) (still : Bool := false)
   : M Unit := do
@@ -57,9 +60,13 @@ end Monad
 /-- Simple monad for algorithmic composition -/
 abbrev CompositionT (P T) [Time T] := StateT (State P T)
 
-def compose { P T } [Time T] { M } [Monad M] (m : CompositionT P T M Unit) : M (Score P T) := do
-  let ((), { score, .. }) ← m.run {}
+def compose { P T } [Time T] { M } [Monad M] (m : CompositionT P T M Unit) (src : Score P T := {})
+  : M (Score P T) := do
+  let ((), { score, .. }) ← m.run { score := src }
   return score
+
+/-- Side-effect free compose -/
+def compose' { P T } [Time T] (m : CompositionT P T Id Unit) : Score P T := compose (Id.run m)
 
 instance [ShiftRight T] : Coe (List (Note P T)) (Score P T) where
   coe li := compose <| Id.run <| show CompositionT P T Id Unit from do

@@ -82,9 +82,13 @@ protected def MeasuredTime.dot (m : MeasuredTime) (n : Nat := 1) : MeasuredTime 
   { bars := m.bars, offset := m.offset * multiplier }
 
 instance : Repr MeasuredTime where
-  reprPrec i _ := f!"{i.bars}.{i.offset}"
+  reprPrec i _ := match i.bars with
+    | 0 => f!".{i.offset}"
+    | b => f!"{b}.{i.offset}"
 instance : ToString MeasuredTime where
-  toString i := s!"{i.bars}.{i.offset}"
+  toString i := match i.bars with
+    | 0 => s!".{i.offset}"
+    | b => s!"{b}.{i.offset}"
 
 open Lean in
 instance : ToExpr MeasuredTime where
